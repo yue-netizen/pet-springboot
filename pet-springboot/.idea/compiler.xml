@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="pet-social" />
+        <module name="pet-chat" />
+        <module name="pet-user" />
+        <module name="pet-common" />
+        <module name="pet-story" />
+        <module name="pet-donation" />
+        <module name="pet-pet" />
+        <module name="pet-gateway" />
+        <module name="pet-recruitment" />
+      </profile>
+    </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="pet-chat" options="-parameters" />
+      <module name="pet-common" options="-parameters" />
+      <module name="pet-donation" options="-parameters" />
+      <module name="pet-gateway" options="-parameters" />
+      <module name="pet-pet" options="-parameters" />
+      <module name="pet-recruitment" options="-parameters" />
+      <module name="pet-social" options="-parameters" />
+      <module name="pet-springboot" options="-parameters" />
+      <module name="pet-story" options="-parameters" />
+      <module name="pet-user" options="-parameters" />
+    </option>
+  </component>
+</project>

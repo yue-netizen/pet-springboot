@@ -1,0 +1,78 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: pet-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.100.128:8848
+        enabled: true
+      config:
+        server-addr: 192.168.100.128:8848
+        file-extension: yaml
+        enabled: false
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: pet-user
+          uri: lb://pet-user
+          predicates:
+            - Path=/api/user/**,/api/auth/**,/api/config/**
+          filters:
+            - StripPrefix=1
+        - id: pet-pet
+          uri: lb://pet-pet
+          predicates:
+            - Path=/api/pet/**,/api/adoption/**
+          filters:
+            - StripPrefix=1
+        - id: pet-social
+          uri: lb://pet-social
+          predicates:
+            - Path=/api/social/**,/api/post/**,/api/comment/**
+          filters:
+            - StripPrefix=1
+        - id: pet-chat
+          uri: lb://pet-chat
+          predicates:
+            - Path=/api/chat/**,/api/message/**
+          filters:
+            - StripPrefix=1
+        - id: pet-donation
+          uri: lb://pet-donation
+          predicates:
+            - Path=/api/donation/**
+          filters:
+            - StripPrefix=1
+        - id: pet-recruitment
+          uri: lb://pet-recruitment
+          predicates:
+            - Path=/api/recruitment/**,/api/job/**
+          filters:
+            - StripPrefix=1
+        - id: pet-story
+          uri: lb://pet-story
+          predicates:
+            - Path=/api/story/**
+          filters:
+            - StripPrefix=1
+  data:
+    redis:
+      host: 192.168.100.128
+      port: 6379
+      password: 123321
+  rabbitmq:
+    host: 192.168.100.128
+    port: 5672
+    username: guest
+    password: guest
+
+logging:
+  level:
+    com.pet.gateway: debug
+    org.springframework.cloud.gateway: debug

@@ -1,0 +1,63 @@
+server:
+  port: 9005
+
+spring:
+  application:
+    name: pet-donation
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.100.128:8848
+        enabled: true
+      config:
+        server-addr: 192.168.100.128:8848
+        file-extension: yaml
+        enabled: false
+  datasource:
+    url: jdbc:mysql://localhost:3306/pet?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+  data:
+    redis:
+      host: 192.168.100.128
+      port: 6379
+      password: 123321
+  rabbitmq:
+    host: 192.168.100.128
+    port: 5672
+    username: guest
+    password: guest
+
+seata:
+  enabled: false
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.pet.donation.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.pet.donation: debug
+
+knife4j:
+  enable: true
+  openapi:
+    title: 捐赠服务API
+    description: 宠物领养平台捐赠服务接口文档
+    version: 1.0.0
+    group:
+      default:
+        group-name: default
+        api-rule: package
+        api-rule-resources:
+          - com.pet.donation.controller

@@ -1,0 +1,19 @@
+package com.pet.chat.entity;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.pet.common.entity.BaseEntity;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+@Data
+@EqualsAndHashCode(callSuper = true)
+@TableName("chat_conversation")
+public class Conversation extends BaseEntity {
+
+    private Long user1Id;
+    private Long user2Id;
+    private String lastMessage;
+    private Integer unreadCount1;
+    private Integer unreadCount2;
+    private Integer status;
+}
