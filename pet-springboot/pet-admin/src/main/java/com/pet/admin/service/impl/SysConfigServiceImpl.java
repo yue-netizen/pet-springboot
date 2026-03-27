@@ -8,6 +8,7 @@ import com.pet.admin.mapper.SysConfigMapper;
 import com.pet.admin.service.SysConfigService;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -26,8 +27,20 @@ public class SysConfigServiceImpl extends ServiceImpl<SysConfigMapper, SysConfig
 
     @Override
     public void updateByKey(String configKey, String configValue) {
-        update(new LambdaUpdateWrapper<SysConfig>()
-                .eq(SysConfig::getConfigKey, configKey)
-                .set(SysConfig::getConfigValue, configValue));
+        SysConfig existing = getByKey(configKey);
+        if (existing != null) {
+            existing.setConfigValue(configValue);
+            existing.setUpdateTime(LocalDateTime.now());
+            updateById(existing);
+        } else {
+            SysConfig newConfig = new SysConfig();
+            newConfig.setConfigKey(configKey);
+            newConfig.setConfigValue(configValue);
+            newConfig.setConfigName(configKey);
+            newConfig.setDescription(configKey);
+            newConfig.setCreateTime(LocalDateTime.now());
+            newConfig.setUpdateTime(LocalDateTime.now());
+            save(newConfig);
+        }
     }
 }

@@ -27,7 +27,15 @@ const aboutSections = [
   { key: 'contact', label: '联系我们', fields: ['about_contact', 'about_contact_image'] }
 ]
 
+const rulesSections = [
+  { key: 'adoption-rules', label: '领养规则', configKey: 'adoption_rules' },
+  { key: 'adoption-agreement', label: '领养协议', configKey: 'adoption_agreement' },
+  { key: 'foster-rules', label: '寄养规则', configKey: 'foster_rules' },
+  { key: 'foster-agreement', label: '寄养协议', configKey: 'foster_agreement' }
+]
+
 const activeAboutSection = ref('intro')
+const activeRulesSection = ref('adoption-rules')
 const editingUser = ref<UserDTO | null>(null)
 const showEditModal = ref(false)
 
@@ -47,6 +55,14 @@ function setConfigValue(key: string, value: string) {
   const config = configs.value.find(c => c.configKey === key)
   if (config) {
     config.configValue = value
+  } else {
+    configs.value.push({
+      id: 0,
+      configKey: key,
+      configValue: value,
+      configName: '',
+      description: ''
+    })
   }
 }
 
@@ -104,6 +120,20 @@ async function saveRules() {
   try {
     const value = getConfigValue('adoption_rules')
     await updateConfig('adoption_rules', value)
+    alert('保存成功！')
+  } catch (e) {
+    console.error('保存失败', e)
+    alert('保存失败，请重试')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function saveSingleRule(configKey: string) {
+  saving.value = true
+  try {
+    const value = getConfigValue(configKey)
+    await updateConfig(configKey, value)
     alert('保存成功！')
   } catch (e) {
     console.error('保存失败', e)
@@ -491,25 +521,140 @@ onMounted(() => {
             </div>
           </div>
 
-          <div v-if="activeTab === 'rules'" class="space-y-4">
-            <div>
-              <label class="block text-foreground font-medium mb-2">领养规则内容</label>
-              <textarea
-                :value="getConfigValue('adoption_rules')"
-                @input="setConfigValue('adoption_rules', ($event.target as HTMLTextAreaElement).value)"
-                rows="15"
-                class="w-full p-4 rounded-xl border border-border bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="请输入领养规则内容..."
-              ></textarea>
-            </div>
-            <div class="flex justify-end">
+          <div v-if="activeTab === 'rules'" class="space-y-6">
+            <div class="flex flex-wrap gap-2 mb-6">
               <button
-                @click="saveRules"
-                :disabled="saving"
-                class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 transition-opacity shadow-custom disabled:opacity-50"
+                @click="activeRulesSection = 'adoption-rules'"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                  activeRulesSection === 'adoption-rules'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ]"
               >
-                {{ saving ? '保存中...' : '保存领养规则' }}
+                领养规则
               </button>
+              <button
+                @click="activeRulesSection = 'adoption-agreement'"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                  activeRulesSection === 'adoption-agreement'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ]"
+              >
+                领养协议
+              </button>
+              <button
+                @click="activeRulesSection = 'foster-rules'"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                  activeRulesSection === 'foster-rules'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ]"
+              >
+                寄养规则
+              </button>
+              <button
+                @click="activeRulesSection = 'foster-agreement'"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                  activeRulesSection === 'foster-agreement'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ]"
+              >
+                寄养协议
+              </button>
+            </div>
+
+            <div v-if="activeRulesSection === 'adoption-rules'" class="space-y-4">
+              <div>
+                <label class="block text-foreground font-medium mb-2">领养规则内容</label>
+                <textarea
+                  :value="getConfigValue('adoption_rules')"
+                  @input="setConfigValue('adoption_rules', ($event.target as HTMLTextAreaElement).value)"
+                  rows="15"
+                  class="w-full p-4 rounded-xl border border-border bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="请输入领养规则内容..."
+                ></textarea>
+              </div>
+              <div class="flex justify-end">
+                <button
+                  @click="saveSingleRule('adoption_rules')"
+                  :disabled="saving"
+                  class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 transition-opacity shadow-custom disabled:opacity-50"
+                >
+                  {{ saving ? '保存中...' : '保存领养规则' }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="activeRulesSection === 'adoption-agreement'" class="space-y-4">
+              <div>
+                <label class="block text-foreground font-medium mb-2">领养协议内容</label>
+                <textarea
+                  :value="getConfigValue('adoption_agreement')"
+                  @input="setConfigValue('adoption_agreement', ($event.target as HTMLTextAreaElement).value)"
+                  rows="15"
+                  class="w-full p-4 rounded-xl border border-border bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="请输入领养协议内容..."
+                ></textarea>
+              </div>
+              <div class="flex justify-end">
+                <button
+                  @click="saveSingleRule('adoption_agreement')"
+                  :disabled="saving"
+                  class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 transition-opacity shadow-custom disabled:opacity-50"
+                >
+                  {{ saving ? '保存中...' : '保存领养协议' }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="activeRulesSection === 'foster-rules'" class="space-y-4">
+              <div>
+                <label class="block text-foreground font-medium mb-2">寄养规则内容</label>
+                <textarea
+                  :value="getConfigValue('foster_rules')"
+                  @input="setConfigValue('foster_rules', ($event.target as HTMLTextAreaElement).value)"
+                  rows="15"
+                  class="w-full p-4 rounded-xl border border-border bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="请输入寄养规则内容..."
+                ></textarea>
+              </div>
+              <div class="flex justify-end">
+                <button
+                  @click="saveSingleRule('foster_rules')"
+                  :disabled="saving"
+                  class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 transition-opacity shadow-custom disabled:opacity-50"
+                >
+                  {{ saving ? '保存中...' : '保存寄养规则' }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="activeRulesSection === 'foster-agreement'" class="space-y-4">
+              <div>
+                <label class="block text-foreground font-medium mb-2">寄养协议内容</label>
+                <textarea
+                  :value="getConfigValue('foster_agreement')"
+                  @input="setConfigValue('foster_agreement', ($event.target as HTMLTextAreaElement).value)"
+                  rows="15"
+                  class="w-full p-4 rounded-xl border border-border bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="请输入寄养协议内容..."
+                ></textarea>
+              </div>
+              <div class="flex justify-end">
+                <button
+                  @click="saveSingleRule('foster_agreement')"
+                  :disabled="saving"
+                  class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 transition-opacity shadow-custom disabled:opacity-50"
+                >
+                  {{ saving ? '保存中...' : '保存寄养协议' }}
+                </button>
+              </div>
             </div>
           </div>
 

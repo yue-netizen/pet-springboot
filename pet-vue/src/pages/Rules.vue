@@ -1,36 +1,49 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import ContentSidebar from '@/components/ContentSidebar.vue'
 import { getConfigByKey } from '@/api/config'
 
 const activeSection = ref('adoption-rules')
-const rulesContent = ref('')
+const configs = ref<Record<string, string>>({})
 const loading = ref(true)
 
 const sections = [
-  { id: 'adoption-rules', label: '领养规则' },
-  { id: 'adoption-agreement', label: '领养协议' },
-  { id: 'foster-rules', label: '寄养规则' },
-  { id: 'foster-agreement', label: '寄养协议' }
+  { id: 'adoption-rules', label: '领养规则', key: 'adoption_rules' },
+  { id: 'adoption-agreement', label: '领养协议', key: 'adoption_agreement' },
+  { id: 'foster-rules', label: '寄养规则', key: 'foster_rules' },
+  { id: 'foster-agreement', label: '寄养协议', key: 'foster_agreement' }
 ]
 
-const rules = computed(() => {
-  return rulesContent.value.split('\n').filter(r => r.trim())
+const currentContent = computed(() => {
+  const section = sections.find(s => s.id === activeSection.value)
+  return section ? (configs.value[section.key] || '') : ''
 })
 
-async function loadRulesContent() {
+const rules = computed(() => {
+  return currentContent.value.split('\n').filter(r => r.trim())
+})
+
+async function loadConfigs() {
+  loading.value = true
   try {
-    const res = await getConfigByKey('adoption_rules')
-    rulesContent.value = res.data?.configValue || ''
+    const promises = sections.map(async (section) => {
+      try {
+        const res = await getConfigByKey(section.key)
+        configs.value[section.key] = res.data?.configValue || ''
+      } catch (e) {
+        configs.value[section.key] = ''
+      }
+    })
+    await Promise.all(promises)
   } catch (e) {
-    console.error('加载领养规则失败', e)
+    console.error('加载规则失败', e)
   } finally {
     loading.value = false
   }
 }
 
 onMounted(() => {
-  loadRulesContent()
+  loadConfigs()
 })
 </script>
 
