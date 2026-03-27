@@ -21,7 +21,7 @@ public class AuthController {
 
     @Operation(summary = "用户登录")
     @PostMapping("/login")
-    public Result<LoginVO> login(@RequestParam String username, @RequestParam String password) {
+    public Result<LoginVO> login(@RequestParam("username") String username, @RequestParam("password") String password) {
         return userService.login(username, password);
     }
 

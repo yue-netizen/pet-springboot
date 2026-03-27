@@ -11,6 +11,7 @@
         <module name="pet-user" />
         <module name="pet-common" />
         <module name="pet-story" />
+        <module name="pet-admin" />
         <module name="pet-donation" />
         <module name="pet-pet" />
         <module name="pet-gateway" />
@@ -20,6 +21,7 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="pet-admin" options="-parameters" />
       <module name="pet-chat" options="-parameters" />
       <module name="pet-common" options="-parameters" />
       <module name="pet-donation" options="-parameters" />

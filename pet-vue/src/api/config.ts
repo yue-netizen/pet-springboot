@@ -8,6 +8,18 @@ export interface SysConfig {
   description: string
 }
 
+export interface UserDTO {
+  id: number
+  username: string
+  nickname: string
+  avatar: string
+  email: string
+  phone: string
+  address: string
+  status: number
+  role: number
+}
+
 export function getConfigList() {
   return request.get<any, { data: SysConfig[] }>('/config/list')
 }

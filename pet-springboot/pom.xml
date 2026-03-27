@@ -21,6 +21,7 @@
         <module>pet-donation</module>
         <module>pet-recruitment</module>
         <module>pet-story</module>
+        <module>pet-admin</module>
     </modules>
 
     <properties>

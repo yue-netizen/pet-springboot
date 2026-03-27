@@ -18,13 +18,13 @@ public class UserController {
 
     @Operation(summary = "根据ID获取用户信息")
     @GetMapping("/{id}")
-    public Result<UserDTO> getUserById(@PathVariable Long id) {
+    public Result<UserDTO> getUserById(@PathVariable("id") Long id) {
         return userService.getUserById(id);
     }
 
     @Operation(summary = "根据用户名获取用户信息")
     @GetMapping("/username/{username}")
-    public Result<UserDTO> getUserByUsername(@PathVariable String username) {
+    public Result<UserDTO> getUserByUsername(@PathVariable("username") String username) {
         return userService.getUserByUsername(username);
     }
 
@@ -44,8 +44,8 @@ public class UserController {
 
     @Operation(summary = "修改密码")
     @PutMapping("/password")
-    public Result<Void> updatePassword(@RequestParam String oldPassword,
-                                        @RequestParam String newPassword,
+    public Result<Void> updatePassword(@RequestParam("oldPassword") String oldPassword,
+                                        @RequestParam("newPassword") String newPassword,
                                         @RequestHeader("X-User-Id") Long userId) {
         return userService.updatePassword(userId, oldPassword, newPassword);
     }
