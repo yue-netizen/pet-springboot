@@ -188,7 +188,8 @@ async function deleteUserConfirm(user: UserDTO) {
   }
 }
 
-function goBack() {
+function logout() {
+  userStore.logout()
   router.push('/')
 }
 
@@ -202,43 +203,45 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
-    <div class="max-w-7xl mx-auto px-4 py-8">
-      <div class="bg-card rounded-3xl shadow-custom border border-border p-8">
-        <div class="flex items-center justify-between mb-8">
-          <div>
-            <h1 class="text-3xl font-extrabold text-foreground">管理员后台</h1>
-            <p class="text-muted-foreground mt-2">管理用户和网站内容</p>
-          </div>
-          <button 
-            @click="goBack"
-            class="px-6 py-2 rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors"
-          >
-            返回首页
-          </button>
-        </div>
+  <div class="min-h-screen bg-background flex">
+    <div class="w-64 bg-card border-r border-border flex-shrink-0 flex flex-col">
+      <div class="p-6 border-b border-border">
+        <h1 class="text-2xl font-extrabold text-foreground">管理员后台</h1>
+        <p class="text-muted-foreground mt-2 text-sm">管理用户和网站内容</p>
+      </div>
+      
+      <nav class="p-4 space-y-2 flex-1">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          @click="activeTab = tab.key"
+          :class="[
+            'w-full text-left px-4 py-3 rounded-xl font-medium transition-all',
+            activeTab === tab.key
+              ? 'bg-primary text-primary-foreground shadow-custom'
+              : 'text-muted-foreground hover:bg-muted'
+          ]"
+        >
+          {{ tab.label }}
+        </button>
+      </nav>
+      
+      <div class="p-4 border-t border-border">
+        <button 
+          @click="logout"
+          class="w-full px-4 py-3 rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors"
+        >
+          退出登录
+        </button>
+      </div>
+    </div>
+    
+    <div class="flex-1 p-8">
+      <div v-if="loading" class="py-12 text-center text-muted-foreground">
+        加载中...
+      </div>
 
-        <div class="flex gap-4 mb-8">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            @click="activeTab = tab.key"
-            :class="[
-              'px-6 py-3 rounded-xl font-medium transition-all',
-              activeTab === tab.key
-                ? 'bg-primary text-primary-foreground shadow-custom'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            ]"
-          >
-            {{ tab.label }}
-          </button>
-        </div>
-
-        <div v-if="loading" class="py-12 text-center text-muted-foreground">
-          加载中...
-        </div>
-
-        <div v-else class="space-y-6">
+      <div v-else class="space-y-6">
           
           <div v-if="activeTab === 'users'" class="space-y-6">
             <div class="overflow-x-auto">
@@ -659,7 +662,6 @@ onMounted(() => {
           </div>
 
         </div>
-      </div>
     </div>
 
     <div v-if="showEditModal && editingUser" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

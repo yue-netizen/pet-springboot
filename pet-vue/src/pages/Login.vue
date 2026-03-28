@@ -26,7 +26,11 @@ async function handleLogin() {
       username: username.value,
       password: password.value
     })
-    router.push('/')
+    if (userStore.isAdmin()) {
+      router.push('/admin')
+    } else {
+      router.push('/')
+    }
   } catch (e: any) {
     errorMsg.value = e.response?.data?.message || '登录失败，请重试'
   } finally {
