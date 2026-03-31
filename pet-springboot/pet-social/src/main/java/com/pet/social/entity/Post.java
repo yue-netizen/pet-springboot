@@ -13,6 +13,7 @@ public class Post extends BaseEntity {
     private Long userId;
     private String content;
     private String image;
+    private String video;
     private Integer likeCount;
     private Integer commentCount;
     private Integer status;

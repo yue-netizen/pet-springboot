@@ -1,3 +1,0 @@
-com\pet\gateway\filter\AuthGlobalFilter.class
-com\pet\gateway\GatewayApplication.class
-com\pet\gateway\handler\GlobalExceptionHandler.class

@@ -5,6 +5,7 @@ export interface Post {
   userId: number
   content: string
   image: string
+  video: string
   likeCount: number
   commentCount: number
   createTime: string
@@ -23,6 +24,7 @@ export interface Comment {
 export interface PostCreate {
   content: string
   image?: string
+  video?: string
 }
 
 export interface CommentCreate {
@@ -70,4 +72,30 @@ export function createComment(data: CommentCreate) {
 
 export function deleteComment(id: number) {
   return request.delete(`/comment/${id}`)
+}
+
+export function uploadImage(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<any, { data: string }>('/upload/image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+}
+
+export function uploadVideo(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<any, { data: string }>('/upload/video', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+}
+
+export function deleteFile(url: string) {
+  return request.delete('/upload', {
+    params: { url },
+  })
 }

@@ -1,7 +1,0 @@
-com\pet\donation\vo\DonationVO.class
-com\pet\donation\DonationApplication.class
-com\pet\donation\controller\DonationController.class
-com\pet\donation\mapper\DonationMapper.class
-com\pet\donation\entity\Donation.class
-com\pet\donation\service\impl\DonationServiceImpl.class
-com\pet\donation\service\DonationService.class

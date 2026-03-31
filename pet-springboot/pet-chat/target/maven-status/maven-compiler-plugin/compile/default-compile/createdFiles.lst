@@ -1,9 +1,0 @@
-com\pet\chat\entity\Conversation.class
-com\pet\chat\entity\Message.class
-com\pet\chat\controller\ChatController.class
-com\pet\chat\ChatApplication.class
-com\pet\chat\service\ChatService.class
-com\pet\chat\mapper\MessageMapper.class
-com\pet\chat\mapper\ConversationMapper.class
-com\pet\chat\vo\MessageVO.class
-com\pet\chat\service\impl\ChatServiceImpl.class

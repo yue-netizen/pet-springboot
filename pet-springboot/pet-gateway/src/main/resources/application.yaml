@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: pet-gateway
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+      enabled: true
   cloud:
     nacos:
       discovery:
@@ -40,7 +45,7 @@ spring:
         - id: pet-social
           uri: lb://pet-social
           predicates:
-            - Path=/api/social/**,/api/post/**,/api/comment/**
+            - Path=/api/social/**,/api/post/**,/api/comment/**,/api/upload/**
           filters:
             - StripPrefix=1
         - id: pet-chat

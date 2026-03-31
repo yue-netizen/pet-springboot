@@ -1,9 +1,0 @@
-com\pet\user\controller\UserController.class
-com\pet\user\service\UserService.class
-com\pet\user\entity\User.class
-com\pet\user\controller\AuthController.class
-com\pet\user\service\impl\UserServiceImpl.class
-com\pet\user\vo\LoginVO.class
-com\pet\user\UserApplication.class
-com\pet\user\mapper\UserMapper.class
-com\pet\user\vo\RegisterVO.class

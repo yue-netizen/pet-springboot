@@ -1,27 +1,46 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Heart, MessageSquare, Share2, User } from 'lucide-vue-next'
+import type { Post } from '@/api/social'
+import { likePost, unlikePost } from '@/api/social'
 
 interface Props {
-  author?: string
-  time?: string
-  content?: string
-  image?: string
+  post: Post
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  author: "宠物爱好者99",
-  time: "2小时前",
-  content: "刚刚领养了这只小家伙！欢迎回家，小宝贝。🐶❤️",
-  image: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80"
-})
+const props = defineProps<Props>()
 
 const liked = ref(false)
-const likes = ref(24)
+const likes = ref(props.post.likeCount || 0)
 
-const handleLike = () => {
-  liked.value = !liked.value
-  likes.value = liked.value ? likes.value + 1 : likes.value - 1
+const formatTime = (timeStr: string) => {
+  const date = new Date(timeStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  
+  const minutes = Math.floor(diff / (1000 * 60))
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  return `${days}天前`
+}
+
+const handleLike = async () => {
+  try {
+    if (liked.value) {
+      await unlikePost(props.post.id)
+      likes.value--
+    } else {
+      await likePost(props.post.id)
+      likes.value++
+    }
+    liked.value = !liked.value
+  } catch (error) {
+    console.error('点赞失败', error)
+  }
 }
 </script>
 
@@ -33,8 +52,8 @@ const handleLike = () => {
           <User :size="24" />
         </div>
         <div class="flex flex-col">
-          <span class="font-bold text-foreground">{{ author }}</span>
-          <span class="text-xs text-muted-foreground">{{ time }}</span>
+          <span class="font-bold text-foreground">用户{{ post.userId }}</span>
+          <span class="text-xs text-muted-foreground">{{ formatTime(post.createTime) }}</span>
         </div>
       </div>
       <button class="bg-muted text-foreground px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-primary hover:text-primary-foreground transition-colors">
@@ -42,10 +61,14 @@ const handleLike = () => {
       </button>
     </div>
     
-    <p class="text-foreground mb-4 leading-relaxed">{{ content }}</p>
+    <p class="text-foreground mb-4 leading-relaxed">{{ post.content }}</p>
     
-    <div v-if="image" class="rounded-xl overflow-hidden mb-6 max-h-[400px]">
-      <img :src="image" alt="帖子内容" class="w-full h-full object-cover" />
+    <div v-if="post.image" class="rounded-xl overflow-hidden mb-6 max-h-[400px]">
+      <img :src="post.image" alt="帖子内容" class="w-full h-full object-cover" />
+    </div>
+    
+    <div v-if="post.video" class="rounded-xl overflow-hidden mb-6 max-h-[400px]">
+      <video :src="post.video" controls class="w-full h-full object-cover" />
     </div>
     
     <div class="flex items-center gap-6 pt-4 border-t border-border">
