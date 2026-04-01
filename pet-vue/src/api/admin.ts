@@ -28,3 +28,13 @@ export function getConfigByKey(key: string) {
 export function updateConfig(key: string, value: string) {
   return request.put(`/admin/config/${key}`, { configValue: value })
 }
+
+export function uploadImage(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<any, { data: string }>('/admin/upload/image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+}

@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { getAllUsers, updateUserByAdmin, deleteUser, updateUserStatus, getConfigList, updateConfig, type SysConfig, type UserDTO } from '@/api/admin'
+import { getAllUsers, updateUserByAdmin, deleteUser, updateUserStatus, getConfigList, updateConfig, uploadImage, type SysConfig, type UserDTO } from '@/api/admin'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -12,6 +12,7 @@ const users = ref<UserDTO[]>([])
 const configs = ref<SysConfig[]>([])
 const loading = ref(false)
 const saving = ref(false)
+const uploadingImage = ref(false)
 
 const tabs = [
   { key: 'users', label: '用户管理' },
@@ -188,6 +189,26 @@ async function deleteUserConfirm(user: UserDTO) {
   }
 }
 
+async function handleImageUpload(e: Event, configKey: string) {
+  const target = e.target as HTMLInputElement
+  if (!target.files || target.files.length === 0) return
+  
+  const file = target.files[0]
+  uploadingImage.value = true
+  
+  try {
+    const res = await uploadImage(file)
+    setConfigValue(configKey, res.data)
+    alert('图片上传成功！')
+  } catch (e) {
+    console.error('图片上传失败', e)
+    alert('图片上传失败，请重试')
+  } finally {
+    uploadingImage.value = false
+    target.value = ''
+  }
+}
+
 function logout() {
   userStore.logout()
   router.push('/')
@@ -343,14 +364,24 @@ onMounted(() => {
                 ></textarea>
               </div>
               <div>
-                <label class="block text-foreground font-medium mb-2">简介图片 URL</label>
-                <input
-                  type="text"
-                  :value="getConfigValue('about_intro_image')"
-                  @input="setConfigValue('about_intro_image', ($event.target as HTMLInputElement).value)"
-                  class="w-full p-4 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="请输入图片URL..."
-                />
+                <label class="block text-foreground font-medium mb-2">简介图片</label>
+                <label class="w-full p-4 rounded-xl border border-dashed border-border bg-background text-center text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors">
+                  <div class="py-4">
+                    <div class="text-2xl mb-2">📷</div>
+                    <div class="font-medium">点击上传图片</div>
+                    <div class="text-sm mt-1">或拖拽到此处</div>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    @change="handleImageUpload($event, 'about_intro_image')"
+                    class="hidden"
+                    :disabled="uploadingImage"
+                  />
+                </label>
+                <div v-if="uploadingImage" class="mt-2 text-center text-primary">
+                  上传中...
+                </div>
                 <div v-if="getConfigValue('about_intro_image')" class="mt-4">
                   <img :src="getConfigValue('about_intro_image')" alt="预览" class="w-full h-48 object-cover rounded-xl" />
                 </div>
@@ -500,14 +531,24 @@ onMounted(() => {
                 ></textarea>
               </div>
               <div>
-                <label class="block text-foreground font-medium mb-2">联系我们图片 URL</label>
-                <input
-                  type="text"
-                  :value="getConfigValue('about_contact_image')"
-                  @input="setConfigValue('about_contact_image', ($event.target as HTMLInputElement).value)"
-                  class="w-full p-4 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="请输入图片URL..."
-                />
+                <label class="block text-foreground font-medium mb-2">联系我们图片</label>
+                <label class="w-full p-4 rounded-xl border border-dashed border-border bg-background text-center text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors">
+                  <div class="py-4">
+                    <div class="text-2xl mb-2">📷</div>
+                    <div class="font-medium">点击上传图片</div>
+                    <div class="text-sm mt-1">或拖拽到此处</div>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    @change="handleImageUpload($event, 'about_contact_image')"
+                    class="hidden"
+                    :disabled="uploadingImage"
+                  />
+                </label>
+                <div v-if="uploadingImage" class="mt-2 text-center text-primary">
+                  上传中...
+                </div>
                 <div v-if="getConfigValue('about_contact_image')" class="mt-4">
                   <img :src="getConfigValue('about_contact_image')" alt="预览" class="w-full h-48 object-cover rounded-xl" />
                 </div>
