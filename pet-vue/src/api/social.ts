@@ -5,7 +5,10 @@ export interface Post {
   userId: number
   content: string
   image: string
+  images: string
   video: string
+  videos: string
+  tags: string
   likeCount: number
   commentCount: number
   createTime: string
@@ -24,7 +27,10 @@ export interface Comment {
 export interface PostCreate {
   content: string
   image?: string
+  images?: string
   video?: string
+  videos?: string
+  tags?: string
 }
 
 export interface CommentCreate {

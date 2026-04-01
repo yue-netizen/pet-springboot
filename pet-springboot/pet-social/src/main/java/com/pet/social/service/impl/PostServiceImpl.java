@@ -54,7 +54,10 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         post.setUserId(userId);
         post.setContent(postVO.getContent());
         post.setImage(postVO.getImage());
+        post.setImages(postVO.getImages());
         post.setVideo(postVO.getVideo());
+        post.setVideos(postVO.getVideos());
+        post.setTags(postVO.getTags());
         post.setLikeCount(0);
         post.setCommentCount(0);
         post.setStatus(1);

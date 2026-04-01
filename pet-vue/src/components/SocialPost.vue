@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Heart, MessageSquare, Share2, User } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { Heart, MessageSquare, Share2, User, Maximize2, X } from 'lucide-vue-next'
 import type { Post } from '@/api/social'
 import { likePost, unlikePost } from '@/api/social'
 
@@ -12,6 +12,35 @@ const props = defineProps<Props>()
 
 const liked = ref(false)
 const likes = ref(props.post.likeCount || 0)
+const showImageViewer = ref(false)
+const currentViewerIndex = ref(0)
+
+const postImages = computed(() => {
+  if (props.post.images) {
+    return props.post.images.split(',').filter(Boolean)
+  }
+  if (props.post.image) {
+    return [props.post.image]
+  }
+  return []
+})
+
+const postVideos = computed(() => {
+  if (props.post.videos) {
+    return props.post.videos.split(',').filter(Boolean)
+  }
+  if (props.post.video) {
+    return [props.post.video]
+  }
+  return []
+})
+
+const postTags = computed(() => {
+  if (props.post.tags) {
+    return props.post.tags.split(',').filter(Boolean)
+  }
+  return []
+})
 
 const formatTime = (timeStr: string) => {
   const date = new Date(timeStr)
@@ -42,6 +71,15 @@ const handleLike = async () => {
     console.error('点赞失败', error)
   }
 }
+
+const openImageViewer = (index: number) => {
+  currentViewerIndex.value = index
+  showImageViewer.value = true
+}
+
+const closeImageViewer = () => {
+  showImageViewer.value = false
+}
 </script>
 
 <template>
@@ -63,12 +101,48 @@ const handleLike = async () => {
     
     <p class="text-foreground mb-4 leading-relaxed">{{ post.content }}</p>
     
-    <div v-if="post.image" class="rounded-xl overflow-hidden mb-6 max-h-[400px]">
-      <img :src="post.image" alt="帖子内容" class="w-full h-full object-cover" />
+    <div class="mb-4">
+      <div class="grid grid-cols-3 gap-2">
+        <div 
+          v-for="(img, index) in postImages" 
+          :key="`img-${index}`"
+          class="relative group cursor-pointer"
+          @click="openImageViewer(index)"
+        >
+          <img 
+            :src="img" 
+            :alt="`帖子图片${index + 1}`" 
+            class="w-full h-40 object-cover rounded-xl"
+          />
+          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 rounded-xl transition-colors flex items-center justify-center">
+            <button class="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 text-white p-2 rounded-full">
+              <Maximize2 :size="20" />
+            </button>
+          </div>
+        </div>
+
+        <div 
+          v-for="(vid, index) in postVideos" 
+          :key="`vid-${index}`"
+          class="relative group col-span-3"
+        >
+          <video 
+            :src="vid" 
+            controls 
+            class="w-full h-48 object-cover rounded-xl"
+          />
+        </div>
+      </div>
     </div>
     
-    <div v-if="post.video" class="rounded-xl overflow-hidden mb-6 max-h-[400px]">
-      <video :src="post.video" controls class="w-full h-full object-cover" />
+    <div v-if="postTags.length > 0" class="flex flex-wrap gap-2 mb-4">
+      <span 
+        v-for="tag in postTags" 
+        :key="tag"
+        class="bg-muted text-foreground px-3 py-1 rounded-full text-sm font-medium"
+      >
+        {{ tag }}
+      </span>
     </div>
     
     <div class="flex items-center gap-6 pt-4 border-t border-border">
@@ -87,5 +161,12 @@ const handleLike = async () => {
         <Share2 :size="20" />
       </button>
     </div>
+  </div>
+
+  <div v-if="showImageViewer" class="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center" @click="closeImageViewer">
+    <button @click.stop="closeImageViewer" class="absolute top-4 right-4 text-white hover:text-gray-300">
+      <X :size="32" />
+    </button>
+    <img :src="postImages[currentViewerIndex]" class="max-h-[90vh] max-w-[90vw] object-contain" @click.stop />
   </div>
 </template>

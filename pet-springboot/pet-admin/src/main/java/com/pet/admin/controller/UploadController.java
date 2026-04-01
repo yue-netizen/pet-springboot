@@ -37,13 +37,6 @@ public class UploadController {
         return Result.success(url);
     }
 
-    @Operation(summary = "上传社区图片")
-    @PostMapping("/social")
-    public Result<String> uploadSocialImage(@RequestParam("file") MultipartFile file) {
-        String url = ossUtil.uploadFile(file, "social");
-        return Result.success(url);
-    }
-
     @Operation(summary = "删除文件")
     @DeleteMapping
     public Result<Void> deleteFile(@RequestParam("url") String url) {

@@ -15,5 +15,11 @@ public class PostVO implements Serializable {
 
     private String image;
 
+    private String images;
+
     private String video;
+
+    private String videos;
+
+    private String tags;
 }
