@@ -20,4 +20,7 @@ public class Post extends BaseEntity {
     private Integer likeCount;
     private Integer commentCount;
     private Integer status;
+    
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Boolean liked;
 }

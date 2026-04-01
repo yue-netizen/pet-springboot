@@ -22,14 +22,16 @@ public class PostController {
     @Operation(summary = "获取帖子列表")
     @GetMapping("/list")
     public Result<Page<Post>> getPostList(@RequestParam(defaultValue = "1") Integer page,
-                                           @RequestParam(defaultValue = "10") Integer size) {
-        return postService.getPostList(page, size);
+                                           @RequestParam(defaultValue = "10") Integer size,
+                                           @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return postService.getPostList(page, size, userId);
     }
 
     @Operation(summary = "获取帖子详情")
     @GetMapping("/{id}")
-    public Result<Post> getPostById(@PathVariable Long id) {
-        return postService.getPostById(id);
+    public Result<Post> getPostById(@PathVariable Long id,
+                                     @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return postService.getPostById(id, userId);
     }
 
     @Operation(summary = "发布帖子")
@@ -58,5 +60,12 @@ public class PostController {
     public Result<Void> unlikePost(@PathVariable Long id,
                                     @RequestHeader("X-User-Id") Long userId) {
         return postService.unlikePost(id, userId);
+    }
+
+    @Operation(summary = "检查用户是否点赞")
+    @GetMapping("/{id}/liked")
+    public Result<Boolean> checkPostLiked(@PathVariable Long id,
+                                           @RequestHeader("X-User-Id") Long userId) {
+        return postService.checkPostLiked(id, userId);
     }
 }

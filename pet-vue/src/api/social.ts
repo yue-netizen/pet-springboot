@@ -12,6 +12,7 @@ export interface Post {
   likeCount: number
   commentCount: number
   createTime: string
+  liked?: boolean
 }
 
 export interface Comment {
@@ -63,6 +64,10 @@ export function likePost(id: number) {
 
 export function unlikePost(id: number) {
   return request.delete(`/post/${id}/like`)
+}
+
+export function checkPostLiked(id: number) {
+  return request.get<any, { data: boolean }>(`/post/${id}/liked`)
 }
 
 export function getComments(postId: number, page = 1, size = 10) {

@@ -8,9 +8,9 @@ import com.pet.social.vo.PostVO;
 
 public interface PostService extends IService<Post> {
 
-    Result<Page<Post>> getPostList(Integer page, Integer size);
+    Result<Page<Post>> getPostList(Integer page, Integer size, Long userId);
 
-    Result<Post> getPostById(Long id);
+    Result<Post> getPostById(Long id, Long userId);
 
     Result<Void> createPost(PostVO postVO, Long userId);
 
@@ -19,4 +19,6 @@ public interface PostService extends IService<Post> {
     Result<Void> likePost(Long postId, Long userId);
 
     Result<Void> unlikePost(Long postId, Long userId);
+
+    Result<Boolean> checkPostLiked(Long postId, Long userId);
 }

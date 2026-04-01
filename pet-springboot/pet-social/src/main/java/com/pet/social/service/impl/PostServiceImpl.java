@@ -27,7 +27,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private final CommentMapper commentMapper;
 
     @Override
-    public Result<Page<Post>> getPostList(Integer page, Integer size) {
+    public Result<Page<Post>> getPostList(Integer page, Integer size, Long userId) {
         LambdaQueryWrapper<Post> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Post::getStatus, 1)
                 .orderByDesc(Post::getCreateTime);
@@ -35,15 +35,36 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         Page<Post> postPage = new Page<>(page, size);
         Page<Post> result = this.page(postPage, wrapper);
         
+        if (userId != null) {
+            for (Post post : result.getRecords()) {
+                LambdaQueryWrapper<Like> likeWrapper = new LambdaQueryWrapper<>();
+                likeWrapper.eq(Like::getUserId, userId)
+                        .eq(Like::getTargetId, post.getId())
+                        .eq(Like::getTargetType, 1);
+                long count = likeMapper.selectCount(likeWrapper);
+                post.setLiked(count > 0);
+            }
+        }
+        
         return Result.success(result);
     }
 
     @Override
-    public Result<Post> getPostById(Long id) {
+    public Result<Post> getPostById(Long id, Long userId) {
         Post post = this.getById(id);
         if (post == null) {
             throw BusinessException.of("帖子不存在");
         }
+        
+        if (userId != null) {
+            LambdaQueryWrapper<Like> likeWrapper = new LambdaQueryWrapper<>();
+            likeWrapper.eq(Like::getUserId, userId)
+                    .eq(Like::getTargetId, post.getId())
+                    .eq(Like::getTargetType, 1);
+            long count = likeMapper.selectCount(likeWrapper);
+            post.setLiked(count > 0);
+        }
+        
         return Result.success(post);
     }
 
@@ -141,5 +162,16 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
         
         return Result.success();
+    }
+
+    @Override
+    public Result<Boolean> checkPostLiked(Long postId, Long userId) {
+        LambdaQueryWrapper<Like> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Like::getUserId, userId)
+                .eq(Like::getTargetId, postId)
+                .eq(Like::getTargetType, 1);
+        
+        long count = likeMapper.selectCount(wrapper);
+        return Result.success(count > 0);
     }
 }
