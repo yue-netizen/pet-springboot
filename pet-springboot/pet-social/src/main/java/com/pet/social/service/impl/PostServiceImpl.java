@@ -25,6 +25,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     private final LikeMapper likeMapper;
     private final CommentMapper commentMapper;
+    private final com.pet.social.service.TopicService topicService;
 
     @Override
     public Result<Page<Post>> getPostList(Integer page, Integer size, Long userId) {
@@ -73,6 +74,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     public Result<Void> createPost(PostVO postVO, Long userId) {
         Post post = new Post();
         post.setUserId(userId);
+        post.setTitle(postVO.getTitle());
         post.setContent(postVO.getContent());
         post.setImage(postVO.getImage());
         post.setImages(postVO.getImages());
@@ -84,6 +86,16 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         post.setStatus(1);
         
         this.save(post);
+        
+        if (postVO.getTags() != null && !postVO.getTags().isEmpty()) {
+            String[] tags = postVO.getTags().split(",");
+            for (String tag : tags) {
+                if (tag != null && !tag.trim().isEmpty()) {
+                    topicService.createTopic(tag.trim());
+                    topicService.incrementTopicUseCount(tag.trim());
+                }
+            }
+        }
         
         return Result.success();
     }

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Image as ImageIcon, Video, Smile, User, X, Maximize2 } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { Image as ImageIcon, Video, Smile, User, X, Maximize2, Hash } from 'lucide-vue-next'
 import SocialPost from '@/components/SocialPost.vue'
-import { getPostList, createPost, uploadImage, uploadVideo } from '@/api/social'
-import type { Post } from '@/api/social'
+import { getPostList, createPost, uploadImage, uploadVideo, getTrendingTopics, searchTopics, createTopic as createTopicApi } from '@/api/social'
+import type { Post, Topic } from '@/api/social'
 import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
 
@@ -11,10 +11,10 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const suggestedUsers = [1, 2, 3]
-const trendingTags = ["#宠物领养", "#狗狗训练", "#猫咪爱好者", "#爪印之家社区", "#救助宠物"]
 
 const emojis = ["😀", "😂", "🥰", "😍", "🤩", "😊", "😇", "🙂", "😉", "😌", "😋", "🤤", "😎", "🤗", "😘", "😚", "😜", "🤪", "😝", "🤑", "🤔", "🤫", "🤭", "😏", "😒", "🙄", "😮", "😯", "😲", "😳", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "😈", "👿", "💀", "☠️", "💩", "🤡", "👹", "👺", "👻", "👽", "👾", "🤖", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾", "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🐝", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶️", "🌽", "🥕", "🧄", "🧅", "🥔", "🍠", "🥐", "🥯", "🍞", "🥖", "🥨", "🧀", "🥚", "🍳", "🧈", "🥞", "🧇", "🥓", "🥩", "🍗", "🍖", "🌭", "🍔", "🍟", "🍕", "🥪", "🥙", "🌮", "🌯", "🥗", "🥘", "🍝", "🍜", "🍲", "🍛", "🍣", "🍱", "🥟", "🦪", "🍤", "🍙", "🍚", "🍘", "🍥", "🥠", "🍢", "🍡", "🍧", "🍨", "🍦", "🥧", "🍰", "🎂", "🍮", "🍭", "🍬", "🍫", "🍿", "🧂", "🥤", "🍵", "🍶", "🍾", "🍷", "🍸", "🍹", "🍺", "🍻", "🥂", "🥃", "🍼", "☕", "🧋", "🧃", "🧉"]
 
+const title = ref('')
 const content = ref('')
 const selectedImages = ref<File[]>([])
 const imagePreviews = ref<string[]>([])
@@ -29,6 +29,13 @@ const currentEmojiPage = ref(0)
 const emojisPerPage = 32
 const showImageViewer = ref(false)
 const currentViewerIndex = ref(0)
+const trendingTopics = ref<Topic[]>([])
+
+const showTopicSuggestions = ref(false)
+const topicSuggestions = ref<Topic[]>([])
+const currentTopicKeyword = ref('')
+const hashStartIndex = ref(-1)
+const contentTextareaRef = ref<HTMLTextAreaElement>()
 
 const emojiCategories = [
   {
@@ -85,6 +92,9 @@ const handleClickOutside = (e: MouseEvent) => {
   if (!target.closest('.emoji-picker-container') && !target.closest('.emoji-button')) {
     showEmojiPicker.value = false
   }
+  if (!target.closest('.topic-suggestions-container') && !target.closest('.content-textarea')) {
+    showTopicSuggestions.value = false
+  }
 }
 
 const loadPosts = async () => {
@@ -96,6 +106,90 @@ const loadPosts = async () => {
     console.error('加载帖子失败', error)
   } finally {
     loading.value = false
+  }
+}
+
+const loadTrendingTopics = async () => {
+  try {
+    const res = await getTrendingTopics(1, 10)
+    trendingTopics.value = res.data.records || []
+  } catch (error) {
+    console.error('加载热门话题失败', error)
+  }
+}
+
+const searchTopicSuggestions = async (keyword: string) => {
+  if (!keyword || keyword.trim() === '') {
+    topicSuggestions.value = trendingTopics.value
+    return
+  }
+  try {
+    const res = await searchTopics(keyword, 1, 10)
+    topicSuggestions.value = res.data.records || []
+  } catch (error) {
+    console.error('搜索话题失败', error)
+  }
+}
+
+const handleContentInput = async () => {
+  if (!contentTextareaRef.value) return
+  
+  const cursorPos = contentTextareaRef.value.selectionStart
+  const textBeforeCursor = content.value.substring(0, cursorPos)
+  const lastHashIndex = textBeforeCursor.lastIndexOf('#')
+  
+  if (lastHashIndex !== -1) {
+    const textAfterHash = textBeforeCursor.substring(lastHashIndex + 1)
+    const spaceIndex = textAfterHash.indexOf(' ')
+    
+    if (spaceIndex === -1) {
+      hashStartIndex.value = lastHashIndex
+      currentTopicKeyword.value = textAfterHash
+      showTopicSuggestions.value = true
+      await searchTopicSuggestions(currentTopicKeyword.value)
+      return
+    }
+  }
+  
+  showTopicSuggestions.value = false
+  hashStartIndex.value = -1
+}
+
+const selectTopic = async (topic: Topic | string) => {
+  let topicName = typeof topic === 'string' ? topic : topic.name
+  
+  if (!topicName.startsWith('#')) {
+    topicName = '#' + topicName
+  }
+  
+  if (!selectedTags.value.includes(topicName)) {
+    selectedTags.value.push(topicName)
+    
+    if (typeof topic === 'string') {
+      try {
+        await createTopicApi(topicName.replace('#', ''))
+      } catch (error) {
+        console.error('创建话题失败', error)
+      }
+    }
+  }
+  
+  if (hashStartIndex.value !== -1 && contentTextareaRef.value) {
+    const textBefore = content.value.substring(0, hashStartIndex.value)
+    const textAfter = content.value.substring(contentTextareaRef.value.selectionStart)
+    content.value = textBefore + topicName + ' ' + textAfter
+  }
+  
+  showTopicSuggestions.value = false
+  hashStartIndex.value = -1
+}
+
+const toggleTag = (tag: string) => {
+  const index = selectedTags.value.indexOf(tag)
+  if (index > -1) {
+    selectedTags.value.splice(index, 1)
+  } else {
+    selectedTags.value.push(tag)
   }
 }
 
@@ -145,15 +239,6 @@ const removeVideo = (index: number) => {
   videoPreviews.value.splice(index, 1)
 }
 
-const toggleTag = (tag: string) => {
-  const index = selectedTags.value.indexOf(tag)
-  if (index > -1) {
-    selectedTags.value.splice(index, 1)
-  } else {
-    selectedTags.value.push(tag)
-  }
-}
-
 const openImageViewer = (index: number) => {
   currentViewerIndex.value = index
   showImageViewer.value = true
@@ -171,6 +256,11 @@ const insertEmoji = (emoji: string) => {
 const handlePublish = async () => {
   if (!userStore.isLoggedIn()) {
     router.push('/login')
+    return
+  }
+
+  if (title.value.length > 20) {
+    alert('标题不能超过20个字')
     return
   }
 
@@ -204,10 +294,11 @@ const handlePublish = async () => {
     }
 
     if (selectedTags.value.length > 0) {
-      tagsStr = selectedTags.value.join(',')
+      tagsStr = selectedTags.value.map(t => t.replace('#', '')).join(',')
     }
 
     await createPost({
+      title: title.value.trim(),
       content: content.value,
       image: imageUrl,
       images: imagesUrl,
@@ -216,6 +307,7 @@ const handlePublish = async () => {
       tags: tagsStr
     })
 
+    title.value = ''
     content.value = ''
     selectedImages.value = []
     imagePreviews.value = []
@@ -223,6 +315,7 @@ const handlePublish = async () => {
     videoPreviews.value = []
     selectedTags.value = []
     showImageViewer.value = false
+    showTopicSuggestions.value = false
 
     await loadPosts()
   } catch (error) {
@@ -235,6 +328,7 @@ const handlePublish = async () => {
 
 onMounted(() => {
   loadPosts()
+  loadTrendingTopics()
   document.addEventListener('click', handleClickOutside)
 })
 
@@ -248,16 +342,59 @@ onUnmounted(() => {
     
     <div class="flex-1 flex flex-col gap-6">
       <div class="bg-card rounded-3xl p-6 shadow-custom border border-border w-full">
+        <div class="mb-4">
+          <input 
+            v-model="title"
+            type="text"
+            placeholder="请输入标题（最多20个字）"
+            maxlength="20"
+            class="w-full bg-transparent border-none outline-none text-foreground text-xl font-bold placeholder:text-muted-foreground pb-2 border-b border-border"
+          />
+          <div class="text-right text-xs text-muted-foreground mt-1">
+            {{ title.length }}/20
+          </div>
+        </div>
+        
         <div class="flex items-start gap-4 mb-4">
           <div class="w-12 h-12 bg-primary/20 rounded-full flex-shrink-0 flex items-center justify-center">
             <User class="text-primary" :size="24" />
           </div>
-          <textarea 
-            v-model="content"
-            rows="3" 
-            placeholder="与社区分享您的宠物时刻..."
-            class="w-full bg-transparent resize-none border-none outline-none text-foreground text-lg placeholder:text-muted-foreground"
-          ></textarea>
+          <div class="flex-1 relative">
+            <textarea 
+              ref="contentTextareaRef"
+              v-model="content"
+              rows="4" 
+              placeholder="写下你的想法... 输入 # 可以添加话题"
+              class="content-textarea w-full bg-transparent resize-none border-none outline-none text-foreground text-lg placeholder:text-muted-foreground"
+              @input="handleContentInput"
+            ></textarea>
+            
+            <div v-if="showTopicSuggestions" class="topic-suggestions-container absolute top-full left-0 right-0 mt-2 bg-card rounded-xl shadow-custom border border-border z-50 max-h-60 overflow-y-auto">
+              <div class="p-2">
+                <div v-if="topicSuggestions.length > 0" class="space-y-1">
+                  <button 
+                    v-for="topic in topicSuggestions" 
+                    :key="topic.id"
+                    @click.stop="selectTopic(topic)"
+                    class="w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-2"
+                  >
+                    <Hash :size="16" class="text-primary" />
+                    <span class="text-foreground">{{ topic.name }}</span>
+                    <span class="text-xs text-muted-foreground ml-auto">{{ topic.useCount }}次</span>
+                  </button>
+                </div>
+                <div v-if="currentTopicKeyword.trim() !== ''">
+                  <button 
+                    @click.stop="selectTopic(currentTopicKeyword)"
+                    class="w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-2 text-primary"
+                  >
+                    <Hash :size="16" />
+                    <span>创建新话题: {{ currentTopicKeyword }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div v-if="imagePreviews.length > 0 || videoPreviews.length > 0" class="mb-4">
@@ -442,12 +579,12 @@ onUnmounted(() => {
         <h3 class="text-xl font-bold text-foreground mb-4">热门话题</h3>
         <div class="flex flex-wrap gap-2">
           <span 
-            v-for="tag in trendingTags" 
-            :key="tag" 
-            @click="toggleTag(tag)"
-            :class="['px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors', selectedTags.includes(tag) ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-primary hover:text-primary-foreground']"
+            v-for="topic in trendingTopics" 
+            :key="topic.id" 
+            @click="toggleTag('#' + topic.name)"
+            :class="['px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors', selectedTags.includes('#' + topic.name) ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-primary hover:text-primary-foreground']"
           >
-            {{ tag }}
+            #{{ topic.name }}
           </span>
         </div>
       </div>

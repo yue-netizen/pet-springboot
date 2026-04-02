@@ -3,6 +3,7 @@ import request from '@/utils/request'
 export interface Post {
   id: number
   userId: number
+  title?: string
   content: string
   image: string
   images: string
@@ -13,6 +14,13 @@ export interface Post {
   commentCount: number
   createTime: string
   liked?: boolean
+}
+
+export interface Topic {
+  id: number
+  name: string
+  useCount: number
+  createTime: string
 }
 
 export interface Comment {
@@ -26,6 +34,7 @@ export interface Comment {
 }
 
 export interface PostCreate {
+  title?: string
   content: string
   image?: string
   images?: string
@@ -108,5 +117,23 @@ export function uploadVideo(file: File) {
 export function deleteFile(url: string) {
   return request.delete('/upload', {
     params: { url },
+  })
+}
+
+export function getTrendingTopics(page = 1, size = 10) {
+  return request.get<any, { data: { records: Topic[]; total: number } }>('/topic/trending', {
+    params: { page, size },
+  })
+}
+
+export function searchTopics(keyword: string, page = 1, size = 10) {
+  return request.get<any, { data: { records: Topic[]; total: number } }>('/topic/search', {
+    params: { keyword, page, size },
+  })
+}
+
+export function createTopic(name: string) {
+  return request.post<any, { data: Topic }>('/topic', null, {
+    params: { name },
   })
 }

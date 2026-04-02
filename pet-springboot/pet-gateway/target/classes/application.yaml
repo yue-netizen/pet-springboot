@@ -45,7 +45,7 @@ spring:
         - id: pet-social
           uri: lb://pet-social
           predicates:
-            - Path=/api/social/**,/api/post/**,/api/comment/**,/api/upload/**
+            - Path=/api/social/**,/api/post/**,/api/comment/**,/api/upload/**,/api/topic/**
           filters:
             - StripPrefix=1
         - id: pet-chat

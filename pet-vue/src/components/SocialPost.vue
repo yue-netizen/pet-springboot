@@ -259,6 +259,7 @@ onMounted(() => {
       </button>
     </div>
     
+    <h2 v-if="post.title" class="text-xl font-bold text-foreground mb-2">{{ post.title }}</h2>
     <p class="text-foreground mb-4 leading-relaxed">{{ post.content }}</p>
     
     <div class="mb-4">
