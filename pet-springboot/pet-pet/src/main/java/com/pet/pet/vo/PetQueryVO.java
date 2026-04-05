@@ -13,6 +13,8 @@ public class PetQueryVO implements Serializable {
     private String type;
     private String breed;
     private String age;
+    private Integer minAge;
+    private Integer maxAge;
     private Integer status;
     private Integer page = 1;
     private Integer size = 10;

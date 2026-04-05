@@ -22,6 +22,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -52,12 +54,56 @@ public class PetServiceImpl extends ServiceImpl<PetMapper, Pet> implements PetSe
             wrapper.eq(Pet::getStatus, queryVO.getStatus());
         }
         
-        wrapper.orderByDesc(Pet::getCreateTime);
+        wrapper.orderByAsc(Pet::getId);
         
-        Page<Pet> page = new Page<>(queryVO.getPage(), queryVO.getSize());
-        Page<Pet> result = this.page(page, wrapper);
+        List<Pet> allPets = this.list(wrapper);
         
-        return Result.success(result);
+        if (queryVO.getMinAge() != null || queryVO.getMaxAge() != null) {
+            allPets = allPets.stream()
+                    .filter(pet -> {
+                        Integer petAge = extractAge(pet.getAge());
+                        if (petAge == null) return true;
+                        boolean match = true;
+                        if (queryVO.getMinAge() != null) {
+                            match = match && petAge >= queryVO.getMinAge();
+                        }
+                        if (queryVO.getMaxAge() != null) {
+                            match = match && petAge <= queryVO.getMaxAge();
+                        }
+                        return match;
+                    })
+                    .toList();
+        }
+        
+        int total = allPets.size();
+        int pageNum = queryVO.getPage();
+        int pageSize = queryVO.getSize();
+        int fromIndex = (pageNum - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, total);
+        
+        List<Pet> pagePets = fromIndex < total ? allPets.subList(fromIndex, toIndex) : new ArrayList<>();
+        
+        Page<Pet> page = new Page<>(pageNum, pageSize, total);
+        page.setRecords(pagePets);
+        
+        return Result.success(page);
+    }
+    
+    private Integer extractAge(String ageStr) {
+        if (StrUtil.isBlank(ageStr)) return null;
+        try {
+            if (ageStr.contains("个月")) {
+                String months = ageStr.replace("个月", "").trim();
+                int m = Integer.parseInt(months);
+                return m / 12;
+            } else if (ageStr.contains("岁")) {
+                String years = ageStr.replace("岁", "").trim();
+                return Integer.parseInt(years);
+            }
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        return null;
     }
 
     @Override
@@ -76,75 +122,26 @@ public class PetServiceImpl extends ServiceImpl<PetMapper, Pet> implements PetSe
         
         PetDTO petDTO = BeanUtil.copyProperties(pet, PetDTO.class);
         
-        redisTemplate.opsForValue().set(
-                cacheKey,
-                petDTO,
-                RedisConstants.CACHE_EXPIRE_TIME,
-                TimeUnit.SECONDS
-        );
+        redisTemplate.opsForValue().set(cacheKey, petDTO, 1, TimeUnit.HOURS);
         
         return Result.success(petDTO);
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Result<Void> addPet(Pet pet) {
-        pet.setStatus(1);
-        this.save(pet);
-        return Result.success();
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Result<Void> updatePet(Pet pet) {
-        Pet existingPet = this.getById(pet.getId());
-        if (existingPet == null) {
-            throw BusinessException.of("宠物不存在");
-        }
-        
-        this.updateById(pet);
-        
-        redisTemplate.delete(RedisConstants.PET_DETAIL_KEY + pet.getId());
-        
-        return Result.success();
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Result<Void> deletePet(Long id) {
-        this.removeById(id);
-        redisTemplate.delete(RedisConstants.PET_DETAIL_KEY + id);
-        return Result.success();
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional
     public Result<Void> applyAdoption(AdoptionApplyVO applyVO, Long userId) {
         Pet pet = this.getById(applyVO.getPetId());
         if (pet == null) {
             throw BusinessException.of("宠物不存在");
         }
-        
         if (pet.getStatus() != 1) {
-            throw BusinessException.of("该宠物暂不可领养");
-        }
-        
-        LambdaQueryWrapper<Adoption> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Adoption::getUserId, userId)
-                .eq(Adoption::getPetId, applyVO.getPetId())
-                .in(Adoption::getStatus, 0, 1);
-        long count = adoptionMapper.selectCount(wrapper);
-        if (count > 0) {
-            throw BusinessException.of("您已申请过该宠物的领养");
+            throw BusinessException.of("该宠物不可领养");
         }
         
         Adoption adoption = new Adoption();
+        BeanUtil.copyProperties(applyVO, adoption);
         adoption.setUserId(userId);
-        adoption.setPetId(applyVO.getPetId());
         adoption.setStatus(0);
-        adoption.setReason(applyVO.getReason());
-        adoption.setAddress(applyVO.getAddress());
-        adoption.setPhone(applyVO.getPhone());
         
         adoptionMapper.insert(adoption);
         
@@ -154,18 +151,53 @@ public class PetServiceImpl extends ServiceImpl<PetMapper, Pet> implements PetSe
     @Override
     public Result<Page<Pet>> getMyAdoptions(Long userId, Integer page, Integer size) {
         LambdaQueryWrapper<Adoption> adoptionWrapper = new LambdaQueryWrapper<>();
-        adoptionWrapper.eq(Adoption::getUserId, userId)
-                .orderByDesc(Adoption::getCreateTime);
+        adoptionWrapper.eq(Adoption::getUserId, userId);
+        adoptionWrapper.orderByDesc(Adoption::getCreateTime);
         
-        Page<Adoption> adoptionPage = new Page<>(page, size);
-        adoptionMapper.selectPage(adoptionPage, adoptionWrapper);
+        List<Adoption> adoptions = adoptionMapper.selectList(adoptionWrapper);
         
-        Page<Pet> petPage = new Page<>(page, size);
-        petPage.setTotal(adoptionPage.getTotal());
-        petPage.setRecords(adoptionPage.getRecords().stream()
-                .map(adoption -> this.getById(adoption.getPetId()))
-                .toList());
+        List<Long> petIds = adoptions.stream()
+                .map(Adoption::getPetId)
+                .distinct()
+                .toList();
         
-        return Result.success(petPage);
+        if (petIds.isEmpty()) {
+            return Result.success(new Page<>(page, size, 0));
+        }
+        
+        LambdaQueryWrapper<Pet> petWrapper = new LambdaQueryWrapper<>();
+        petWrapper.in(Pet::getId, petIds);
+        petWrapper.orderByAsc(Pet::getId);
+        
+        List<Pet> allPets = this.list(petWrapper);
+        
+        int total = allPets.size();
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, total);
+        
+        List<Pet> pagePets = fromIndex < total ? allPets.subList(fromIndex, toIndex) : new ArrayList<>();
+        
+        Page<Pet> resultPage = new Page<>(page, size, total);
+        resultPage.setRecords(pagePets);
+        
+        return Result.success(resultPage);
+    }
+
+    @Override
+    public Result<Void> addPet(Pet pet) {
+        this.save(pet);
+        return Result.success();
+    }
+
+    @Override
+    public Result<Void> updatePet(Pet pet) {
+        this.updateById(pet);
+        return Result.success();
+    }
+
+    @Override
+    public Result<Void> deletePet(Long id) {
+        this.removeById(id);
+        return Result.success();
     }
 }

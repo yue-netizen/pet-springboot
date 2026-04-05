@@ -20,4 +20,22 @@ public class AdoptionApplyVO implements Serializable {
 
     @NotBlank(message = "联系电话不能为空")
     private String phone;
+
+    private String email;
+
+    private Integer applicantAge;
+
+    private String housingType;
+
+    private String hasPetExperience;
+
+    private String familyStatus;
+
+    private Boolean agreeHealthCheck;
+
+    private Boolean agreeNeuter;
+
+    private Boolean agreeGoodEnvironment;
+
+    private Boolean agreeTimelyMedical;
 }

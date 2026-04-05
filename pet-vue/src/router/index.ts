@@ -31,6 +31,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/AdoptPets.vue')
   },
   {
+    path: '/pet/:id',
+    name: 'PetDetail',
+    component: () => import('@/pages/PetDetail.vue')
+  },
+  {
     path: '/stories',
     name: 'Stories',
     component: () => import('@/pages/Stories.vue')
@@ -44,6 +49,11 @@ const routes: RouteRecordRaw[] = [
     path: '/tips',
     name: 'Tips',
     component: () => import('@/pages/Tips.vue')
+  },
+  {
+    path: '/tips/:id',
+    name: 'TipsDetail',
+    component: () => import('@/pages/TipsDetail.vue')
   },
   {
     path: '/recruitment',

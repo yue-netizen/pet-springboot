@@ -1,15 +1,89 @@
 <script setup lang="ts">
-import { Search } from 'lucide-vue-next'
+import { ref, onMounted } from 'vue'
+import { Search, RefreshCw } from 'lucide-vue-next'
 import PetCard from '@/components/PetCard.vue'
+import { getPetList, type Pet } from '@/api/pet'
 
-const pets = [
-  { id: "P1", name: "小黄", breed: "金毛寻回犬", age: "2岁", image: "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80"},
-  { id: "P2", name: "露娜", breed: "波斯猫", age: "6个月", image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80"},
-  { id: "P3", name: "查理", breed: "比格混血", age: "3岁", image: "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=600&q=80"},
-  { id: "P4", name: "米洛", breed: "缅因猫", age: "4岁", image: "https://images.unsplash.com/photo-1513245543132-31f507417b26?auto=format&fit=crop&w=600&q=80"},
-  { id: "P5", name: "库珀", breed: "柯基犬", age: "1岁", image: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=600&q=80"},
-  { id: "P6", name: "黛西", breed: "虎斑猫", age: "2个月", image: "https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?auto=format&fit=crop&w=600&q=80"}
-]
+const pets = ref<Pet[]>([])
+const loading = ref(false)
+const loadingMore = ref(false)
+const hasMore = ref(true)
+const currentPage = ref(1)
+const total = ref(0)
+const pageSize = 9
+const searchKeyword = ref('')
+const selectedType = ref('')
+const minAge = ref<number | ''>('')
+const maxAge = ref<number | ''>('')
+
+const loadPets = async (reset = true) => {
+  if (loading.value || loadingMore.value) return
+  if (reset) {
+    currentPage.value = 1
+    hasMore.value = true
+    pets.value = []
+  }
+  if (!hasMore.value && !reset) return
+  
+  try {
+    if (reset) loading.value = true
+    else loadingMore.value = true
+    
+    const params: any = { 
+      page: currentPage.value, 
+      size: pageSize, 
+      status: 1 
+    }
+    if (searchKeyword.value) {
+      params.name = searchKeyword.value
+    }
+    if (selectedType.value && selectedType.value !== '全部类型') {
+      if (selectedType.value === '狗狗') params.type = '狗'
+      else if (selectedType.value === '猫咪') params.type = '猫'
+      else if (selectedType.value === '鸟类') params.type = '鸟'
+      else params.type = selectedType.value
+    }
+    if (minAge.value !== '') {
+      params.minAge = minAge.value
+    }
+    if (maxAge.value !== '') {
+      params.maxAge = maxAge.value
+    }
+    const res = await getPetList(params)
+    const newPets = res.data?.records || []
+    total.value = res.data?.total || 0
+    
+    if (reset) {
+      pets.value = newPets
+    } else {
+      pets.value = [...pets.value, ...newPets]
+    }
+    
+    hasMore.value = newPets.length >= pageSize
+  } catch (error) {
+    console.error('加载宠物列表失败', error)
+  } finally {
+    loading.value = false
+    loadingMore.value = false
+  }
+}
+
+const loadMore = () => {
+  currentPage.value++
+  loadPets(false)
+}
+
+const handleSearch = () => {
+  loadPets(true)
+}
+
+const handleRefresh = () => {
+  loadPets(true)
+}
+
+onMounted(() => {
+  loadPets(true)
+})
 </script>
 
 <template>
@@ -23,11 +97,13 @@ const pets = [
       <div class="flex items-center w-full max-w-3xl bg-background rounded-full border border-border overflow-hidden px-4 shadow-sm focus-within:ring-2 focus-within:ring-primary transition-shadow">
         <Search class="text-muted-foreground ml-2" :size="24" />
         <input 
+          v-model="searchKeyword"
           type="text" 
           placeholder="按品种、名称或年龄搜索..." 
+          @keyup.enter="handleSearch"
           class="flex-1 bg-transparent py-4 text-lg border-none focus:outline-none px-4 text-foreground placeholder:text-muted-foreground"
         />
-        <button class="bg-secondary text-secondary-foreground px-8 py-2.5 rounded-full font-bold m-1 hover:opacity-90 transition-opacity">
+        <button @click="handleSearch" class="bg-secondary text-secondary-foreground px-8 py-2.5 rounded-full font-bold m-1 hover:opacity-90 transition-opacity">
           搜索
         </button>
       </div>
@@ -35,11 +111,20 @@ const pets = [
 
     <div class="flex flex-col md:flex-row gap-6">
       <div class="w-full md:w-64 shrink-0 flex flex-col gap-6 bg-card p-6 rounded-2xl shadow-custom border border-border h-fit">
-        <h3 class="font-bold text-lg text-foreground border-b border-border pb-3">筛选条件</h3>
+        <div class="flex items-center justify-between border-b border-border pb-3">
+          <h3 class="font-bold text-lg text-foreground">筛选条件</h3>
+          <button 
+            @click="handleRefresh" 
+            class="flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all active:scale-95"
+          >
+            <RefreshCw :size="16" />
+            <span class="font-medium">刷新</span>
+          </button>
+        </div>
         
         <div class="flex flex-col gap-3">
           <label class="font-semibold text-foreground">类型</label>
-          <select class="w-full bg-background border border-border p-3 rounded-xl focus:outline-primary">
+          <select v-model="selectedType" class="w-full bg-background border border-border p-3 rounded-xl focus:outline-primary">
             <option>全部类型</option>
             <option>狗狗</option>
             <option>猫咪</option>
@@ -49,27 +134,55 @@ const pets = [
         </div>
 
         <div class="flex flex-col gap-3">
-          <label class="font-semibold text-foreground">年龄</label>
-          <select class="w-full bg-background border border-border p-3 rounded-xl focus:outline-primary">
-            <option>任意年龄</option>
-            <option>幼崽</option>
-            <option>青年</option>
-            <option>成年</option>
-            <option>老年</option>
-          </select>
+          <label class="font-semibold text-foreground">年龄范围（岁）</label>
+          <div class="flex items-center gap-2">
+            <input
+              type="number"
+              v-model="minAge"
+              placeholder="最小"
+              min="0"
+              class="w-full bg-background border border-border p-3 rounded-xl focus:outline-primary"
+            />
+            <span class="text-muted-foreground">-</span>
+            <input
+              type="number"
+              v-model="maxAge"
+              placeholder="最大"
+              min="0"
+              class="w-full bg-background border border-border p-3 rounded-xl focus:outline-primary"
+            />
+          </div>
         </div>
       </div>
 
-      <div class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <PetCard 
-          v-for="pet in pets" 
-          :key="pet.id"
-          :id="pet.id" 
-          :name="pet.name" 
-          :breed="pet.breed" 
-          :age="pet.age" 
-          :image="pet.image"
-        />
+      <div class="flex-1">
+        <div v-if="loading" class="flex justify-center py-20">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <PetCard 
+            v-for="pet in pets" 
+            :key="pet.id"
+            :id="pet.id" 
+            :name="pet.name" 
+            :breed="pet.breed" 
+            :age="pet.age" 
+            :image="pet.image"
+            location="城市收容所"
+          />
+        </div>
+        <div v-if="!loading && pets.length === 0" class="text-center py-20 text-muted-foreground">
+          暂无宠物数据
+        </div>
+        <div v-if="hasMore && !loading && pets.length > 0" class="flex justify-center py-8">
+          <button
+            @click="loadMore"
+            :disabled="loadingMore"
+            class="px-8 py-3 rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            {{ loadingMore ? '加载中...' : '加载更多' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -20,4 +20,7 @@ public class Pet extends BaseEntity {
     private String healthStatus;
     private Integer status;
     private Long shelterId;
+    private String story;
+    private String size;
+    private String personality;
 }

@@ -11,6 +11,10 @@ export interface Pet {
   description: string
   healthStatus: string
   status: number
+  story: string
+  size: string
+  personality: string
+  createTime: string
 }
 
 export interface PetQuery {
@@ -18,6 +22,8 @@ export interface PetQuery {
   type?: string
   breed?: string
   age?: string
+  minAge?: number
+  maxAge?: number
   status?: number
   page?: number
   size?: number
@@ -28,6 +34,16 @@ export interface AdoptionApply {
   reason: string
   address: string
   phone: string
+  name?: string
+  email?: string
+  applicantAge?: number
+  housingType?: string
+  hasPetExperience?: string
+  familyStatus?: string
+  agreeHealthCheck?: boolean
+  agreeNeuter?: boolean
+  agreeGoodEnvironment?: boolean
+  agreeTimelyMedical?: boolean
 }
 
 export function getPetList(params: PetQuery) {

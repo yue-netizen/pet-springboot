@@ -3,7 +3,7 @@ import { RouterLink } from 'vue-router'
 import { Heart, MapPin } from 'lucide-vue-next'
 
 interface Props {
-  id?: string
+  id?: number
   name?: string
   breed?: string
   age?: string
@@ -12,7 +12,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  id: "P001",
+  id: 0,
   name: "小黄",
   breed: "金毛寻回犬",
   age: "2岁",
@@ -41,7 +41,7 @@ const props = withDefaults(defineProps<Props>(), {
         <MapPin :size="16" />
         <span>{{ location }}</span>
       </div>
-      <RouterLink to="/adopt" class="w-full text-center bg-primary text-primary-foreground py-3 rounded-xl font-bold hover:opacity-90 transition-opacity">
+      <RouterLink :to="`/pet/${id}`" class="w-full text-center bg-primary text-primary-foreground py-3 rounded-xl font-bold hover:opacity-90 transition-opacity">
         领养 {{ name }}
       </RouterLink>
     </div>

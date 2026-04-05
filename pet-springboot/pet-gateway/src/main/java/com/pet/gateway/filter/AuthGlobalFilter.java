@@ -37,7 +37,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             "/user/register",
             "/config/",
             "/pet/list",
-            "/pet/detail",
+            "/pet/",
             "/story/list",
             "/recruitment/list"
     );

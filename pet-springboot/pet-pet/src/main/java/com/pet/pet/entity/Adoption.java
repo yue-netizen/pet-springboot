@@ -16,5 +16,13 @@ public class Adoption extends BaseEntity {
     private String reason;
     private String address;
     private String phone;
-    private String reviewNote;
+    private String email;
+    private Integer applicantAge;
+    private String housingType;
+    private String hasPetExperience;
+    private String familyStatus;
+    private Boolean agreeHealthCheck;
+    private Boolean agreeNeuter;
+    private Boolean agreeGoodEnvironment;
+    private Boolean agreeTimelyMedical;
 }

@@ -22,6 +22,7 @@
         <module>pet-recruitment</module>
         <module>pet-story</module>
         <module>pet-admin</module>
+        <module>pet-tips</module>
     </modules>
 
     <properties>

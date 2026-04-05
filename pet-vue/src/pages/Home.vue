@@ -1,13 +1,34 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ArrowRight, Info, Heart, Shield } from 'lucide-vue-next'
 import PetCard from '@/components/PetCard.vue'
+import { getPetList, type Pet } from '@/api/pet'
 
 const features = [
   { icon: Heart, title: "健康宠物", desc: "所有宠物在领养前都接受全面健康检查。" },
   { icon: Shield, title: "认证流程", desc: "我们安全的领养流程保护您和宠物的权益。" },
   { icon: Info, title: "持续支持", desc: "我们提供终身建议和社区支持。" }
 ]
+
+const featuredPets = ref<Pet[]>([])
+const loading = ref(false)
+
+const loadFeaturedPets = async () => {
+  try {
+    loading.value = true
+    const res = await getPetList({ page: 1, size: 3, status: 1 })
+    featuredPets.value = res.data?.records || []
+  } catch (error) {
+    console.error('加载推荐宠物失败', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadFeaturedPets()
+})
 </script>
 
 <template>
@@ -66,15 +87,22 @@ const features = [
           查看全部 <ArrowRight :size="18" />
         </RouterLink>
       </div>
-      <div class="flex flex-wrap gap-8">
-        <div class="flex-1 min-w-[300px]">
-          <PetCard name="贝拉" breed="拉布拉多混血" age="1岁" image="https://images.unsplash.com/photo-1544568100-847a948585b9?auto=format&fit=crop&w=600&q=80"/>
-        </div>
-        <div class="flex-1 min-w-[300px]">
-          <PetCard name="露娜" breed="波斯猫" age="6个月" image="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80"/>
-        </div>
-        <div class="flex-1 min-w-[300px]">
-          <PetCard name="查理" breed="比格犬" age="3岁" image="https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=600&q=80"/>
+      <div v-if="loading" class="flex justify-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+      <div v-else class="flex flex-wrap gap-8">
+        <div 
+          v-for="pet in featuredPets" 
+          :key="pet.id" 
+          class="flex-1 min-w-[300px]"
+        >
+          <PetCard 
+            :id="pet.id" 
+            :name="pet.name" 
+            :breed="pet.breed" 
+            :age="pet.age" 
+            :image="pet.image"
+          />
         </div>
       </div>
     </section>

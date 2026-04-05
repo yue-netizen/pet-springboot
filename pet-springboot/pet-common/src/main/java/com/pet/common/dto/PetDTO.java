@@ -3,6 +3,7 @@ package com.pet.common.dto;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 @Data
 public class PetDTO implements Serializable {
@@ -20,4 +21,8 @@ public class PetDTO implements Serializable {
     private String healthStatus;
     private Integer status;
     private Long shelterId;
+    private String story;
+    private String size;
+    private String personality;
+    private LocalDateTime createTime;
 }

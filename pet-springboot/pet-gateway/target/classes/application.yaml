@@ -72,6 +72,12 @@ spring:
             - Path=/api/story/**
           filters:
             - StripPrefix=1
+        - id: pet-tips
+          uri: lb://pet-tips
+          predicates:
+            - Path=/api/tips/**
+          filters:
+            - StripPrefix=1
   data:
     redis:
       host: 192.168.100.128
