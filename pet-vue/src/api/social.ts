@@ -137,3 +137,15 @@ export function createTopic(name: string) {
     params: { name },
   })
 }
+
+export function getMyPosts(page = 1, size = 10) {
+  return request.get<any, { data: { records: Post[]; total: number } }>('/post/my', {
+    params: { page, size },
+  })
+}
+
+export function getMyLikedPosts(page = 1, size = 10) {
+  return request.get<any, { data: { records: Post[]; total: number } }>('/post/my/liked', {
+    params: { page, size },
+  })
+}

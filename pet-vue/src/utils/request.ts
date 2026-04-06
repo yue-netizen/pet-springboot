@@ -11,6 +11,15 @@ request.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    const userInfo = localStorage.getItem('userInfo')
+    if (userInfo) {
+      try {
+        const user = JSON.parse(userInfo)
+        if (user.id) {
+          config.headers['X-User-Id'] = user.id
+        }
+      } catch {}
+    }
     return config
   },
   (error) => {

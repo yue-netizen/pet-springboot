@@ -6,6 +6,7 @@ import com.pet.common.dto.PetDTO;
 import com.pet.common.result.Result;
 import com.pet.pet.entity.Pet;
 import com.pet.pet.vo.AdoptionApplyVO;
+import com.pet.pet.vo.AdoptionRecordVO;
 import com.pet.pet.vo.PetQueryVO;
 
 public interface PetService extends IService<Pet> {
@@ -23,4 +24,6 @@ public interface PetService extends IService<Pet> {
     Result<Void> applyAdoption(AdoptionApplyVO applyVO, Long userId);
 
     Result<Page<Pet>> getMyAdoptions(Long userId, Integer page, Integer size);
+
+    Result<Page<AdoptionRecordVO>> getMyAdoptionRecords(Long userId, Integer page, Integer size);
 }

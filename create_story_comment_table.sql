@@ -1,0 +1,15 @@
+-- 创建故事评论表
+USE pet;
+
+CREATE TABLE IF NOT EXISTS story_comment (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '评论ID',
+    story_id BIGINT NOT NULL COMMENT '故事ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    parent_id BIGINT DEFAULT 0 COMMENT '父评论ID，0表示顶级评论',
+    content TEXT NOT NULL COMMENT '评论内容',
+    like_count INT DEFAULT 0 COMMENT '点赞数',
+    status INT DEFAULT 1 COMMENT '状态：0-已删除，1-正常',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted INT DEFAULT 0 COMMENT '逻辑删除'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='故事评论表';

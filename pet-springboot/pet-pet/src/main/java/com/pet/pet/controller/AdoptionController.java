@@ -5,6 +5,7 @@ import com.pet.common.result.Result;
 import com.pet.pet.entity.Pet;
 import com.pet.pet.service.PetService;
 import com.pet.pet.vo.AdoptionApplyVO;
+import com.pet.pet.vo.AdoptionRecordVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,5 +33,13 @@ public class AdoptionController {
                                              @RequestParam(defaultValue = "10") Integer size,
                                              @RequestHeader("X-User-Id") Long userId) {
         return petService.getMyAdoptions(userId, page, size);
+    }
+
+    @Operation(summary = "获取我的申请记录")
+    @GetMapping("/my/records")
+    public Result<Page<AdoptionRecordVO>> getMyAdoptionRecords(@RequestParam(defaultValue = "1") Integer page,
+                                                                  @RequestParam(defaultValue = "10") Integer size,
+                                                                  @RequestHeader("X-User-Id") Long userId) {
+        return petService.getMyAdoptionRecords(userId, page, size);
     }
 }

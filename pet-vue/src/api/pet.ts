@@ -65,3 +65,34 @@ export function getMyAdoptions(page = 1, size = 10) {
     params: { page, size },
   })
 }
+
+export interface AdoptionRecord {
+  id: number
+  userId: number
+  petId: number
+  status: number
+  reason: string
+  address: string
+  phone: string
+  email: string
+  applicantAge: number
+  housingType: string
+  hasPetExperience: string
+  familyStatus: string
+  agreeHealthCheck: boolean
+  agreeNeuter: boolean
+  agreeGoodEnvironment: boolean
+  agreeTimelyMedical: boolean
+  createTime: string
+  updateTime: string
+  petName: string
+  petImage: string
+  petBreed: string
+  petType: string
+}
+
+export function getMyAdoptionRecords(page = 1, size = 10) {
+  return request.get<any, { data: { records: AdoptionRecord[]; total: number } }>('/adoption/my/records', {
+    params: { page, size },
+  })
+}

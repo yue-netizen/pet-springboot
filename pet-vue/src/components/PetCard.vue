@@ -9,6 +9,7 @@ interface Props {
   age?: string
   location?: string
   image?: string
+  showAdoptButton?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -17,7 +18,8 @@ const props = withDefaults(defineProps<Props>(), {
   breed: "金毛寻回犬",
   age: "2岁",
   location: "城市收容所",
-  image: "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80"
+  image: "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80",
+  showAdoptButton: true
 })
 </script>
 
@@ -41,7 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
         <MapPin :size="16" />
         <span>{{ location }}</span>
       </div>
-      <RouterLink :to="`/pet/${id}`" class="w-full text-center bg-primary text-primary-foreground py-3 rounded-xl font-bold hover:opacity-90 transition-opacity">
+      <RouterLink v-if="showAdoptButton" :to="`/pet/${id}`" class="w-full text-center bg-primary text-primary-foreground py-3 rounded-xl font-bold hover:opacity-90 transition-opacity">
         领养 {{ name }}
       </RouterLink>
     </div>

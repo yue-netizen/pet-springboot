@@ -18,6 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -185,5 +189,56 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         
         long count = likeMapper.selectCount(wrapper);
         return Result.success(count > 0);
+    }
+
+    @Override
+    public Result<Page<Post>> getMyPosts(Long userId, Integer page, Integer size) {
+        LambdaQueryWrapper<Post> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Post::getUserId, userId)
+                .orderByDesc(Post::getCreateTime);
+
+        Page<Post> postPage = new Page<>(page, size);
+        Page<Post> result = this.page(postPage, wrapper);
+
+        for (Post post : result.getRecords()) {
+            post.setLiked(true);
+        }
+
+        return Result.success(result);
+    }
+
+    @Override
+    public Result<Page<Post>> getMyLikedPosts(Long userId, Integer page, Integer size) {
+        LambdaQueryWrapper<Like> likeWrapper = new LambdaQueryWrapper<>();
+        likeWrapper.eq(Like::getUserId, userId)
+                .eq(Like::getTargetType, 1)
+                .orderByDesc(Like::getCreateTime);
+
+        Page<Like> likePage = new Page<>(page, size);
+        Page<Like> likes = likeMapper.selectPage(likePage, likeWrapper);
+
+        if (likes.getRecords().isEmpty()) {
+            return Result.success(new Page<>(page, size, 0));
+        }
+
+        List<Long> postIds = likes.getRecords().stream()
+                .map(Like::getTargetId)
+                .toList();
+
+        LambdaQueryWrapper<Post> postWrapper = new LambdaQueryWrapper<>();
+        postWrapper.in(Post::getId, postIds);
+        List<Post> posts = this.list(postWrapper);
+        Map<Long, Post> postMap = posts.stream().collect(Collectors.toMap(Post::getId, p -> p));
+
+        List<Post> orderedPosts = postIds.stream()
+                .filter(postMap::containsKey)
+                .map(postMap::get)
+                .peek(post -> post.setLiked(true))
+                .toList();
+
+        Page<Post> resultPage = new Page<>(page, size, likes.getTotal());
+        resultPage.setRecords(orderedPosts);
+
+        return Result.success(resultPage);
     }
 }

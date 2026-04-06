@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pet.common.result.Result;
 import com.pet.story.entity.Story;
 import com.pet.story.service.StoryService;
+import com.pet.story.vo.StoryDetailVO;
 import com.pet.story.vo.StoryVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,15 +22,16 @@ public class StoryController {
 
     @Operation(summary = "获取故事列表")
     @GetMapping("/list")
-    public Result<Page<Story>> getStoryList(@RequestParam(defaultValue = "1") Integer page,
-                                             @RequestParam(defaultValue = "10") Integer size) {
+    public Result<Page<StoryDetailVO>> getStoryList(@RequestParam(defaultValue = "1") Integer page,
+                                                      @RequestParam(defaultValue = "10") Integer size) {
         return storyService.getStoryList(page, size);
     }
 
     @Operation(summary = "获取故事详情")
     @GetMapping("/{id}")
-    public Result<Story> getStoryById(@PathVariable Long id) {
-        return storyService.getStoryById(id);
+    public Result<StoryDetailVO> getStoryById(@PathVariable Long id,
+                                              @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return storyService.getStoryById(id, userId);
     }
 
     @Operation(summary = "发布故事")
@@ -54,8 +56,9 @@ public class StoryController {
 
     @Operation(summary = "点赞故事")
     @PostMapping("/{id}/like")
-    public Result<Void> likeStory(@PathVariable Long id) {
-        return storyService.likeStory(id);
+    public Result<Void> likeStory(@PathVariable Long id,
+                                   @RequestHeader("X-User-Id") Long userId) {
+        return storyService.likeStory(id, userId);
     }
 
     @Operation(summary = "获取我的故事")
@@ -64,5 +67,13 @@ public class StoryController {
                                              @RequestParam(defaultValue = "10") Integer size,
                                              @RequestHeader("X-User-Id") Long userId) {
         return storyService.getMyStories(userId, page, size);
+    }
+
+    @Operation(summary = "获取我点赞的故事")
+    @GetMapping("/my/liked")
+    public Result<Page<StoryDetailVO>> getMyLikedStories(@RequestParam(defaultValue = "1") Integer page,
+                                                          @RequestParam(defaultValue = "10") Integer size,
+                                                          @RequestHeader("X-User-Id") Long userId) {
+        return storyService.getMyLikedStories(userId, page, size);
     }
 }

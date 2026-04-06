@@ -68,4 +68,20 @@ public class PostController {
                                            @RequestHeader("X-User-Id") Long userId) {
         return postService.checkPostLiked(id, userId);
     }
+
+    @Operation(summary = "获取我的帖子")
+    @GetMapping("/my")
+    public Result<Page<Post>> getMyPosts(@RequestParam(defaultValue = "1") Integer page,
+                                           @RequestParam(defaultValue = "10") Integer size,
+                                           @RequestHeader("X-User-Id") Long userId) {
+        return postService.getMyPosts(userId, page, size);
+    }
+
+    @Operation(summary = "获取我点赞的帖子")
+    @GetMapping("/my/liked")
+    public Result<Page<Post>> getMyLikedPosts(@RequestParam(defaultValue = "1") Integer page,
+                                                @RequestParam(defaultValue = "10") Integer size,
+                                                @RequestHeader("X-User-Id") Long userId) {
+        return postService.getMyLikedPosts(userId, page, size);
+    }
 }

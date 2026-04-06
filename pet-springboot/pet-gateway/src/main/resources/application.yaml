@@ -69,7 +69,7 @@ spring:
         - id: pet-story
           uri: lb://pet-story
           predicates:
-            - Path=/api/story/**
+            - Path=/api/story/**,/api/story-comment/**
           filters:
             - StripPrefix=1
         - id: pet-tips

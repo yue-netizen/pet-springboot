@@ -15,6 +15,7 @@ import com.pet.pet.mapper.AdoptionMapper;
 import com.pet.pet.mapper.PetMapper;
 import com.pet.pet.service.PetService;
 import com.pet.pet.vo.AdoptionApplyVO;
+import com.pet.pet.vo.AdoptionRecordVO;
 import com.pet.pet.vo.PetQueryVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -152,6 +155,7 @@ public class PetServiceImpl extends ServiceImpl<PetMapper, Pet> implements PetSe
     public Result<Page<Pet>> getMyAdoptions(Long userId, Integer page, Integer size) {
         LambdaQueryWrapper<Adoption> adoptionWrapper = new LambdaQueryWrapper<>();
         adoptionWrapper.eq(Adoption::getUserId, userId);
+        adoptionWrapper.eq(Adoption::getStatus, 1);
         adoptionWrapper.orderByDesc(Adoption::getCreateTime);
         
         List<Adoption> adoptions = adoptionMapper.selectList(adoptionWrapper);
@@ -199,5 +203,50 @@ public class PetServiceImpl extends ServiceImpl<PetMapper, Pet> implements PetSe
     public Result<Void> deletePet(Long id) {
         this.removeById(id);
         return Result.success();
+    }
+
+    @Override
+    public Result<Page<AdoptionRecordVO>> getMyAdoptionRecords(Long userId, Integer page, Integer size) {
+        LambdaQueryWrapper<Adoption> adoptionWrapper = new LambdaQueryWrapper<>();
+        adoptionWrapper.eq(Adoption::getUserId, userId);
+        adoptionWrapper.orderByDesc(Adoption::getCreateTime);
+
+        Page<Adoption> adoptionPage = new Page<>(page, size);
+        Page<Adoption> result = adoptionMapper.selectPage(adoptionPage, adoptionWrapper);
+
+        List<AdoptionRecordVO> recordVOs = convertToAdoptionRecordVOList(result.getRecords());
+
+        Page<AdoptionRecordVO> resultPage = new Page<>(page, size, result.getTotal());
+        resultPage.setRecords(recordVOs);
+
+        return Result.success(resultPage);
+    }
+
+    private List<AdoptionRecordVO> convertToAdoptionRecordVOList(List<Adoption> adoptions) {
+        if (adoptions.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> petIds = adoptions.stream().map(Adoption::getPetId).distinct().toList();
+
+        LambdaQueryWrapper<Pet> petWrapper = new LambdaQueryWrapper<>();
+        petWrapper.in(Pet::getId, petIds);
+        List<Pet> pets = this.list(petWrapper);
+        Map<Long, Pet> petMap = pets.stream().collect(Collectors.toMap(Pet::getId, p -> p));
+
+        return adoptions.stream().map(adoption -> {
+            AdoptionRecordVO vo = new AdoptionRecordVO();
+            BeanUtil.copyProperties(adoption, vo);
+
+            Pet pet = petMap.get(adoption.getPetId());
+            if (pet != null) {
+                vo.setPetName(pet.getName());
+                vo.setPetImage(pet.getImage());
+                vo.setPetBreed(pet.getBreed());
+                vo.setPetType(pet.getType());
+            }
+
+            return vo;
+        }).toList();
     }
 }

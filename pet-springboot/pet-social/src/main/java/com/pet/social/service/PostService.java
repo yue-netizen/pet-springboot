@@ -21,4 +21,8 @@ public interface PostService extends IService<Post> {
     Result<Void> unlikePost(Long postId, Long userId);
 
     Result<Boolean> checkPostLiked(Long postId, Long userId);
+
+    Result<Page<Post>> getMyPosts(Long userId, Integer page, Integer size);
+
+    Result<Page<Post>> getMyLikedPosts(Long userId, Integer page, Integer size);
 }
