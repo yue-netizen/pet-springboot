@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { getAllUsers, updateUserByAdmin, deleteUser, updateUserStatus, getConfigList, updateConfig, uploadImage, type SysConfig, type UserDTO, getPetList, getPetById, addPet, updatePet, deletePet, type Pet, getAdoptionList, getAdoptionDetail, reviewAdoption, updateAdoption, type AdoptionDetail } from '@/api/admin'
+import { getAllUsers, updateUserByAdmin, deleteUser, updateUserStatus, getConfigList, updateConfig, uploadImage, type SysConfig, type UserDTO, getPetList, getPetById, addPet, updatePet, deletePet, type Pet, getAdoptionList, getAdoptionDetail, reviewAdoption, updateAdoption, type AdoptionDetail, getPostList, getPostById, deletePost, type Post } from '@/api/admin'
 import { getTipsList, getTipsById, createTips, updateTips, deleteTips, type PetTips } from '@/api/tips'
 
 const router = useRouter()
@@ -21,6 +21,7 @@ const tabs = [
   { key: 'users', label: '用户管理' },
   { key: 'pets', label: '宠物管理' },
   { key: 'adoptions', label: '领养申请' },
+  { key: 'posts', label: '帖子管理' },
   { key: 'about', label: '关于我们' },
   { key: 'rules', label: '领养规则' },
   { key: 'tips', label: '养宠贴士' }
@@ -81,6 +82,10 @@ const adoptionStatusFilter = ref<number | undefined>()
 const showAdoptionDetailModal = ref(false)
 const viewingAdoption = ref<AdoptionDetail | null>(null)
 
+const postsList = ref<Post[]>([])
+const showPostDetailModal = ref(false)
+const viewingPost = ref<Post | null>(null)
+
 const configMap = computed(() => {
   const map: Record<string, string> = {}
   configs.value.forEach(c => {
@@ -120,6 +125,7 @@ async function loadData() {
     await loadTips()
     await loadPets()
     await loadAdoptions()
+    await loadPosts()
   } catch (e) {
     console.error('加载数据失败', e)
   } finally {
@@ -155,6 +161,40 @@ async function loadAdoptions() {
     console.error('加载领养申请失败', e)
     adoptionsList.value = []
   }
+}
+
+async function loadPosts() {
+  try {
+    const res = await getPostList(1, 100)
+    postsList.value = res.data?.records || []
+  } catch (e) {
+    console.error('加载帖子失败', e)
+    postsList.value = []
+  }
+}
+
+async function handleDeletePost(id: number) {
+  if (!confirm('确定要删除这个帖子吗？')) return
+  
+  try {
+    await deletePost(id)
+    await loadPosts()
+    alert('删除成功！')
+  } catch (e) {
+    console.error('删除帖子失败', e)
+    alert('删除失败，请重试')
+  }
+}
+
+function viewPostDetail(post: Post) {
+  viewingPost.value = post
+  showPostDetailModal.value = true
+}
+
+function formatDate(dateStr: string) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN')
 }
 
 async function saveConfig(key: string) {
@@ -452,14 +492,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background flex">
-    <div class="w-64 bg-card border-r border-border flex-shrink-0 flex flex-col">
+  <div class="min-h-screen bg-background">
+    <div class="w-64 bg-card border-r border-border fixed left-0 top-0 bottom-0 flex flex-col z-10">
       <div class="p-6 border-b border-border">
         <h1 class="text-2xl font-extrabold text-foreground">管理员后台</h1>
         <p class="text-muted-foreground mt-2 text-sm">管理用户和网站内容</p>
       </div>
-      
-      <nav class="p-4 space-y-2 flex-1">
+
+      <nav class="p-4 space-y-2 flex-1 overflow-y-auto">
         <button
           v-for="tab in tabs"
           :key="tab.key"
@@ -474,9 +514,9 @@ onMounted(() => {
           {{ tab.label }}
         </button>
       </nav>
-      
+
       <div class="p-4 border-t border-border">
-        <button 
+        <button
           @click="logout"
           class="w-full px-4 py-3 rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors"
         >
@@ -484,8 +524,8 @@ onMounted(() => {
         </button>
       </div>
     </div>
-    
-    <div class="flex-1 p-8">
+
+    <div class="ml-64 p-8 min-h-screen">
       <div v-if="loading" class="py-12 text-center text-muted-foreground">
         加载中...
       </div>
@@ -1146,8 +1186,141 @@ onMounted(() => {
             </div>
           </div>
 
+          <div v-if="activeTab === 'posts'" class="space-y-6">
+            <div class="flex justify-between items-center">
+              <h2 class="text-xl font-bold text-foreground">帖子管理</h2>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-border">
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">ID</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">标题</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">内容</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">点赞/评论</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">发布时间</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="post in postsList" :key="post.id" class="border-b border-border/50 hover:bg-muted/30">
+                    <td class="py-3 px-4">{{ post.id }}</td>
+                    <td class="py-3 px-4 font-medium">{{ post.title || '无标题' }}</td>
+                    <td class="py-3 px-4 max-w-xs truncate">{{ post.content }}</td>
+                    <td class="py-3 px-4">
+                      <span class="text-muted-foreground">{{ post.likeCount }} / {{ post.commentCount }}</span>
+                    </td>
+                    <td class="py-3 px-4 text-muted-foreground text-sm">
+                      {{ formatDate(post.createTime) }}
+                    </td>
+                    <td class="py-3 px-4">
+                      <div class="flex gap-2">
+                        <button
+                          @click="viewPostDetail(post)"
+                          class="px-3 py-1 text-sm rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
+                        >
+                          查看
+                        </button>
+                        <button
+                          @click="handleDeletePost(post.id)"
+                          class="px-3 py-1 text-sm rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div v-if="postsList.length === 0 && !loading" class="text-center py-12 text-muted-foreground">
+                暂无帖子
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
+
+    <div v-if="showPostDetailModal && viewingPost" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-card rounded-2xl p-6 w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-xl font-bold text-foreground">帖子详情</h3>
+          <button @click="showPostDetailModal = false; viewingPost = null" class="text-muted-foreground hover:text-foreground">
+            ✕
+          </button>
+        </div>
+
+        <div class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="text-sm text-muted-foreground">帖子ID</label>
+              <div class="font-medium">{{ viewingPost.id }}</div>
+            </div>
+            <div class="space-y-1">
+              <label class="text-sm text-muted-foreground">发布时间</label>
+              <div class="font-medium">{{ formatDate(viewingPost.createTime) }}</div>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-sm text-muted-foreground">标题</label>
+            <div class="font-medium text-lg">{{ viewingPost.title || '无标题' }}</div>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-sm text-muted-foreground">内容</label>
+            <div class="bg-muted p-4 rounded-xl whitespace-pre-wrap">{{ viewingPost.content }}</div>
+          </div>
+
+          <div v-if="viewingPost.image || viewingPost.images" class="space-y-2">
+            <label class="text-sm text-muted-foreground">图片</label>
+            <div class="grid grid-cols-3 gap-2">
+              <img v-if="viewingPost.image" :src="viewingPost.image" class="w-full h-32 object-cover rounded-lg" />
+              <template v-if="viewingPost.images">
+                <img v-for="(img, idx) in viewingPost.images.split(',')" :key="idx" :src="img" class="w-full h-32 object-cover rounded-lg" />
+              </template>
+            </div>
+          </div>
+
+          <div v-if="viewingPost.tags" class="space-y-2">
+            <label class="text-sm text-muted-foreground">标签</label>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="(tag, idx) in viewingPost.tags.split(',')" :key="idx" class="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
+                #{{ tag }}
+              </span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="text-sm text-muted-foreground">点赞数</label>
+              <div class="font-medium">{{ viewingPost.likeCount }}</div>
+            </div>
+            <div class="space-y-1">
+              <label class="text-sm text-muted-foreground">评论数</label>
+              <div class="font-medium">{{ viewingPost.commentCount }}</div>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-4 border-t border-border">
+            <button
+              @click="showPostDetailModal = false; viewingPost = null"
+              class="px-4 py-2 rounded-xl border border-border hover:bg-muted transition-colors"
+            >
+              关闭
+            </button>
+            <button
+              @click="handleDeletePost(viewingPost.id); showPostDetailModal = false; viewingPost = null"
+              class="px-4 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors"
+            >
+              删除帖子
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div v-if="showTipsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="bg-card rounded-2xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">

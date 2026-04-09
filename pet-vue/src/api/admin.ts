@@ -121,3 +121,32 @@ export function reviewAdoption(id: number, status: number) {
 export function updateAdoption(adoption: any) {
   return request.put('/admin/adoption', adoption)
 }
+
+export interface Post {
+  id: number
+  userId: number
+  title: string
+  content: string
+  image: string
+  images: string
+  video: string
+  videos: string
+  tags: string
+  likeCount: number
+  commentCount: number
+  status: number
+  createTime: string
+  updateTime: string
+}
+
+export function getPostList(page: number = 1, size: number = 100) {
+  return request.get<any, { data: { records: Post[], total: number } }>(`/admin/post/list?page=${page}&size=${size}`)
+}
+
+export function getPostById(id: number) {
+  return request.get<any, { data: Post }>(`/admin/post/${id}`)
+}
+
+export function deletePost(id: number) {
+  return request.delete(`/admin/post/${id}`)
+}
