@@ -13,6 +13,8 @@ import com.pet.social.mapper.LikeMapper;
 import com.pet.social.mapper.PostMapper;
 import com.pet.social.service.PostService;
 import com.pet.social.vo.PostVO;
+import com.pet.common.feign.UserFeignClient;
+import com.pet.common.dto.UserDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -30,16 +34,66 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private final LikeMapper likeMapper;
     private final CommentMapper commentMapper;
     private final com.pet.social.service.TopicService topicService;
+    private final UserFeignClient userFeignClient;
+
+    private void fillUserInfo(List<Post> posts) {
+        if (posts == null || posts.isEmpty()) return;
+
+        Set<Long> userIds = posts.stream()
+                .map(Post::getUserId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+
+        Map<Long, UserDTO> userMap = new HashMap<>();
+        for (Long uid : userIds) {
+            try {
+                Result<UserDTO> result = userFeignClient.getUserById(uid);
+                if (result != null && result.getData() != null) {
+                    userMap.put(uid, result.getData());
+                }
+            } catch (Exception e) {
+                log.error("获取用户信息失败, userId: {}", uid, e);
+            }
+        }
+
+        for (Post post : posts) {
+            UserDTO user = userMap.get(post.getUserId());
+            if (user != null) {
+                post.setUserNickname(user.getNickname() != null ? user.getNickname() : "用户" + post.getUserId());
+                post.setUserAvatar(user.getAvatar());
+            } else {
+                post.setUserNickname("用户" + post.getUserId());
+            }
+        }
+    }
+
+    private void fillUserInfo(Post post) {
+        if (post == null || post.getUserId() == null) return;
+
+        try {
+            Result<UserDTO> result = userFeignClient.getUserById(post.getUserId());
+            if (result != null && result.getData() != null) {
+                UserDTO user = result.getData();
+                post.setUserNickname(user.getNickname() != null ? user.getNickname() : "用户" + post.getUserId());
+                post.setUserAvatar(user.getAvatar());
+            } else {
+                post.setUserNickname("用户" + post.getUserId());
+            }
+        } catch (Exception e) {
+            log.error("获取用户信息失败, userId: {}", post.getUserId(), e);
+            post.setUserNickname("用户" + post.getUserId());
+        }
+    }
 
     @Override
     public Result<Page<Post>> getPostList(Integer page, Integer size, Long userId) {
         LambdaQueryWrapper<Post> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Post::getStatus, 1)
                 .orderByDesc(Post::getCreateTime);
-        
+
         Page<Post> postPage = new Page<>(page, size);
         Page<Post> result = this.page(postPage, wrapper);
-        
+
         if (userId != null) {
             for (Post post : result.getRecords()) {
                 LambdaQueryWrapper<Like> likeWrapper = new LambdaQueryWrapper<>();
@@ -50,7 +104,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
                 post.setLiked(count > 0);
             }
         }
-        
+
+        fillUserInfo(result.getRecords());
+
         return Result.success(result);
     }
 
@@ -60,7 +116,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         if (post == null) {
             throw BusinessException.of("帖子不存在");
         }
-        
+
         if (userId != null) {
             LambdaQueryWrapper<Like> likeWrapper = new LambdaQueryWrapper<>();
             likeWrapper.eq(Like::getUserId, userId)
@@ -69,7 +125,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             long count = likeMapper.selectCount(likeWrapper);
             post.setLiked(count > 0);
         }
-        
+
+        fillUserInfo(post);
+
         return Result.success(post);
     }
 
@@ -204,6 +262,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             post.setLiked(true);
         }
 
+        fillUserInfo(result.getRecords());
+
         return Result.success(result);
     }
 
@@ -238,6 +298,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         Page<Post> resultPage = new Page<>(page, size, likes.getTotal());
         resultPage.setRecords(orderedPosts);
+
+        fillUserInfo(orderedPosts);
 
         return Result.success(resultPage);
     }

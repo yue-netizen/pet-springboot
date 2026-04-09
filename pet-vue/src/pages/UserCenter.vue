@@ -155,6 +155,59 @@ function getStatusColor(status: number) {
   }
   return map[status] || 'text-gray-600 bg-gray-50'
 }
+
+const showEditProfile = ref(false)
+const savingProfile = ref(false)
+const editForm = ref({
+  nickname: '',
+  gender: '',
+  birthday: '',
+  phone: '',
+  email: '',
+  region: '',
+  address: ''
+})
+
+function openEditProfile() {
+  editForm.value = {
+    nickname: userInfo.value?.nickname || '',
+    gender: userInfo.value?.gender || '',
+    birthday: userInfo.value?.birthday ? new Date(userInfo.value.birthday).toISOString().split('T')[0] : '',
+    phone: userInfo.value?.phone || '',
+    email: userInfo.value?.email || '',
+    region: userInfo.value?.region || '',
+    address: userInfo.value?.address || ''
+  }
+  showEditProfile.value = true
+}
+
+async function handleSaveProfile() {
+  if (!editForm.value.nickname.trim()) {
+    alert('请输入昵称')
+    return
+  }
+
+  savingProfile.value = true
+  try {
+    await updateUserInfo({
+      nickname: editForm.value.nickname,
+      gender: editForm.value.gender,
+      birthday: editForm.value.birthday || undefined,
+      phone: editForm.value.phone,
+      email: editForm.value.email,
+      region: editForm.value.region,
+      address: editForm.value.address
+    })
+    await userStore.fetchUserInfo()
+    showEditProfile.value = false
+    alert('保存成功')
+  } catch (e) {
+    console.error('保存失败', e)
+    alert('保存失败，请重试')
+  } finally {
+    savingProfile.value = false
+  }
+}
 </script>
 
 <template>
@@ -180,14 +233,14 @@ function getStatusColor(status: number) {
           </div>
         </div>
         <h2 class="text-2xl font-bold text-foreground mb-1">{{ userInfo?.nickname || '用户' }}</h2>
-        <p v-if="userInfo?.address" class="text-muted-foreground mb-6 flex items-center justify-center gap-2">
-          <MapPin :size="16"/> {{ userInfo.address }}
+        <p v-if="userInfo?.region || userInfo?.address" class="text-muted-foreground mb-6 flex items-center justify-center gap-2">
+          <MapPin :size="16"/> {{ userInfo?.region || userInfo?.address }}
         </p>
         <p v-else class="text-muted-foreground mb-6">暂无地址信息</p>
         <div class="w-full space-y-3">
-          <RouterLink to="/profile/edit" class="block w-full bg-muted text-foreground py-2.5 rounded-xl font-semibold hover:bg-border transition-colors text-center">
+          <button @click="openEditProfile" class="block w-full bg-muted text-foreground py-2.5 rounded-xl font-semibold hover:bg-border transition-colors text-center">
             编辑资料
-          </RouterLink>
+          </button>
           <button @click="handleLogout" class="w-full flex items-center justify-center gap-2 text-muted-foreground hover:text-destructive transition-colors py-2">
             <LogOut :size="18" />
             退出登录
@@ -396,6 +449,117 @@ function getStatusColor(status: number) {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showEditProfile" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-card rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-xl font-bold text-foreground">编辑资料</h3>
+          <button @click="showEditProfile = false" class="text-muted-foreground hover:text-foreground text-2xl">✕</button>
+        </div>
+
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-muted-foreground mb-1">用户名</label>
+              <input
+                type="text"
+                :value="userInfo?.username"
+                disabled
+                class="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/50 text-muted-foreground"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1">昵称 *</label>
+              <input
+                type="text"
+                v-model="editForm.nickname"
+                placeholder="请输入昵称"
+                class="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1">性别</label>
+              <select
+                v-model="editForm.gender"
+                class="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="">请选择</option>
+                <option value="male">男</option>
+                <option value="female">女</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1">出生日期</label>
+              <input
+                type="date"
+                v-model="editForm.birthday"
+                class="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1">手机号</label>
+              <input
+                type="tel"
+                v-model="editForm.phone"
+                placeholder="请输入手机号"
+                class="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-1">邮箱</label>
+            <input
+              type="email"
+              v-model="editForm.email"
+              placeholder="请输入邮箱"
+              class="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1">所在地区</label>
+              <input
+                type="text"
+                v-model="editForm.region"
+                placeholder="如：北京市朝阳区"
+                class="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1">详细地址</label>
+              <input
+                type="text"
+                v-model="editForm.address"
+                placeholder="请输入详细地址"
+                class="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-border">
+          <button
+            @click="showEditProfile = false"
+            class="px-6 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors"
+          >
+            取消
+          </button>
+          <button
+            @click="handleSaveProfile"
+            :disabled="savingProfile"
+            class="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+          >
+            <div v-if="savingProfile" class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+            保存
+          </button>
         </div>
       </div>
     </div>

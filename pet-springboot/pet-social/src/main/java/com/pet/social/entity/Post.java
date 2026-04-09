@@ -21,7 +21,13 @@ public class Post extends BaseEntity {
     private Integer likeCount;
     private Integer commentCount;
     private Integer status;
-    
+
     @com.baomidou.mybatisplus.annotation.TableField(exist = false)
     private Boolean liked;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String userNickname;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String userAvatar;
 }

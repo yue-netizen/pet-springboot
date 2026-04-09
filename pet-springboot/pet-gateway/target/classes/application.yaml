@@ -27,7 +27,7 @@ spring:
         - id: pet-user
           uri: lb://pet-user
           predicates:
-            - Path=/api/user/**,/api/auth/**
+            - Path=/api/user/**,/api/auth/**,/api/follow/**
           filters:
             - StripPrefix=1
         - id: pet-admin

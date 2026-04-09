@@ -3,6 +3,7 @@ package com.pet.common.dto;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 
 @Data
 public class UserDTO implements Serializable {
@@ -15,6 +16,9 @@ public class UserDTO implements Serializable {
     private String avatar;
     private String email;
     private String phone;
+    private String gender;
+    private LocalDate birthday;
+    private String region;
     private String address;
     private Integer status;
     private Integer role;

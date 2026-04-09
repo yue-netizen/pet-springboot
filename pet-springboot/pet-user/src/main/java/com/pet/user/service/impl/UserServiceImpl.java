@@ -139,19 +139,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null) {
             throw BusinessException.of("用户不存在");
         }
-        
+
         user.setNickname(userDTO.getNickname());
         user.setAvatar(userDTO.getAvatar());
         user.setEmail(userDTO.getEmail());
         user.setPhone(userDTO.getPhone());
+        user.setGender(userDTO.getGender());
+        user.setBirthday(userDTO.getBirthday());
+        user.setRegion(userDTO.getRegion());
         user.setAddress(userDTO.getAddress());
-        
+
         this.updateById(user);
-        
+
         String cacheKey = RedisConstants.USER_INFO_KEY + user.getId();
         redisTemplate.delete(cacheKey);
-        
-        return Result.success(userDTO);
+
+        UserDTO updatedDTO = BeanUtil.copyProperties(user, UserDTO.class);
+        return Result.success(updatedDTO);
     }
 
     @Override

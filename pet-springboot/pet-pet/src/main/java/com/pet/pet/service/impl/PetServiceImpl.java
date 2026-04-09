@@ -40,15 +40,20 @@ public class PetServiceImpl extends ServiceImpl<PetMapper, Pet> implements PetSe
     @Override
     public Result<Page<Pet>> getPetList(PetQueryVO queryVO) {
         LambdaQueryWrapper<Pet> wrapper = new LambdaQueryWrapper<>();
-        
-        if (StrUtil.isNotBlank(queryVO.getName())) {
-            wrapper.like(Pet::getName, queryVO.getName());
-        }
-        if (StrUtil.isNotBlank(queryVO.getType())) {
-            wrapper.eq(Pet::getType, queryVO.getType());
-        }
-        if (StrUtil.isNotBlank(queryVO.getBreed())) {
-            wrapper.like(Pet::getBreed, queryVO.getBreed());
+
+        if (StrUtil.isNotBlank(queryVO.getName()) || StrUtil.isNotBlank(queryVO.getBreed())) {
+            wrapper.and(w -> {
+                if (StrUtil.isNotBlank(queryVO.getName())) {
+                    w.like(Pet::getName, queryVO.getName());
+                }
+                if (StrUtil.isNotBlank(queryVO.getBreed())) {
+                    if (StrUtil.isNotBlank(queryVO.getName())) {
+                        w.or().like(Pet::getBreed, queryVO.getBreed());
+                    } else {
+                        w.like(Pet::getBreed, queryVO.getBreed());
+                    }
+                }
+            });
         }
         if (StrUtil.isNotBlank(queryVO.getAge())) {
             wrapper.eq(Pet::getAge, queryVO.getAge());

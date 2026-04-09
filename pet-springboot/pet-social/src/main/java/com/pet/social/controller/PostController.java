@@ -77,6 +77,14 @@ public class PostController {
         return postService.getMyPosts(userId, page, size);
     }
 
+    @Operation(summary = "获取用户帖子列表")
+    @GetMapping("/user/{userId}")
+    public Result<Page<Post>> getUserPosts(@PathVariable Long userId,
+                                            @RequestParam(defaultValue = "1") Integer page,
+                                            @RequestParam(defaultValue = "10") Integer size) {
+        return postService.getMyPosts(userId, page, size);
+    }
+
     @Operation(summary = "获取我点赞的帖子")
     @GetMapping("/my/liked")
     public Result<Page<Post>> getMyLikedPosts(@RequestParam(defaultValue = "1") Integer page,

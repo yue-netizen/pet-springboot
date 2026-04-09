@@ -236,6 +236,10 @@ const loadLikedStatus = async () => {
   }
 }
 
+const goToUserProfile = (userId: number) => {
+  router.push(`/user/${userId}`)
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   loadLikedStatus()
@@ -245,20 +249,18 @@ onMounted(() => {
 <template>
   <div data-cmp="SocialPost" class="bg-card rounded-2xl p-6 shadow-custom border border-border w-full mb-6">
     <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 cursor-pointer" @click="goToUserProfile(post.userId)">
         <div class="w-12 h-12 bg-muted rounded-full flex items-center justify-center text-muted-foreground overflow-hidden">
-          <User :size="24" />
+          <img v-if="post.userAvatar" :src="post.userAvatar" alt="用户头像" class="w-full h-full object-cover" />
+          <User v-else :size="24" />
         </div>
         <div class="flex flex-col">
-          <span class="font-bold text-foreground">用户{{ post.userId }}</span>
+          <span class="font-bold text-foreground hover:text-primary transition-colors">{{ post.userNickname || '用户' + post.userId }}</span>
           <span class="text-xs text-muted-foreground">{{ formatTime(post.createTime) }}</span>
         </div>
       </div>
-      <button class="bg-muted text-foreground px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-primary hover:text-primary-foreground transition-colors">
-        关注
-      </button>
     </div>
-    
+
     <h2 v-if="post.title" class="text-xl font-bold text-foreground mb-2">{{ post.title }}</h2>
     <p class="text-foreground mb-4 leading-relaxed">{{ post.content }}</p>
     

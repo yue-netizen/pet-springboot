@@ -14,6 +14,8 @@ export interface Post {
   commentCount: number
   createTime: string
   liked?: boolean
+  userNickname?: string
+  userAvatar?: string
 }
 
 export interface Topic {
@@ -140,6 +142,12 @@ export function createTopic(name: string) {
 
 export function getMyPosts(page = 1, size = 10) {
   return request.get<any, { data: { records: Post[]; total: number } }>('/post/my', {
+    params: { page, size },
+  })
+}
+
+export function getPostListByUser(userId: number, page = 1, size = 100) {
+  return request.get<any, { data: { records: Post[]; total: number } }>('/post/user/' + userId, {
     params: { page, size },
   })
 }

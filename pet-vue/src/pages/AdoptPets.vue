@@ -36,6 +36,7 @@ const loadPets = async (reset = true) => {
     }
     if (searchKeyword.value) {
       params.name = searchKeyword.value
+      params.breed = searchKeyword.value
     }
     if (selectedType.value && selectedType.value !== '全部类型') {
       if (selectedType.value === '狗狗') params.type = '狗'

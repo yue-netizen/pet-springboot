@@ -20,6 +20,9 @@ export interface UserInfo {
   avatar: string
   email: string
   phone: string
+  gender?: string
+  birthday?: string
+  region?: string
   address: string
   status: number
 }
@@ -45,6 +48,10 @@ export function register(data: RegisterParams) {
 
 export function getUserInfo() {
   return request.get<any, { data: UserInfo }>('/user/info')
+}
+
+export function getUserById(id: number) {
+  return request.get<any, { data: UserInfo }>(`/user/${id}`)
 }
 
 export function updateUserInfo(data: Partial<UserInfo>) {
