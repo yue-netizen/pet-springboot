@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
-import { User, Heart, FileText, MapPin, LogOut, Image, MessageSquare, Trash2, Eye } from 'lucide-vue-next'
+import { User, Heart, FileText, MapPin, LogOut, Image, MessageSquare, Trash2, Eye, Users } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user'
 import PetCard from '@/components/PetCard.vue'
 import SocialPost from '@/components/SocialPost.vue'
@@ -10,6 +10,7 @@ import { getMyPosts, getMyLikedPosts, deletePost, type Post } from '@/api/social
 import { getMyLikedStories, type StoryDetail } from '@/api/story'
 import { uploadImage } from '@/api/social'
 import { updateUserInfo } from '@/api/user'
+import { getMyFollows, unfollowUser } from '@/api/follow'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -27,6 +28,7 @@ const adoptionRecords = ref<AdoptionRecord[]>([])
 const myPosts = ref<Post[]>([])
 const likedPosts = ref<Post[]>([])
 const likedStories = ref<StoryDetail[]>([])
+const follows = ref<any[]>([])
 
 const likedActiveTab = ref('posts')
 
@@ -52,6 +54,8 @@ async function loadData() {
     await loadMyPosts()
   } else if (activeTab.value === 'liked') {
     await loadLikedData()
+  } else if (activeTab.value === 'follows') {
+    await loadFollows()
   }
 }
 
@@ -105,6 +109,28 @@ async function loadLikedData() {
     console.error('加载喜欢内容失败', e)
   } finally {
     loading.value = false
+  }
+}
+
+async function loadFollows() {
+  loading.value = true
+  try {
+    const res = await getMyFollows(1, 100)
+    follows.value = res.data?.records || []
+  } catch (e) {
+    console.error('加载关注列表失败', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleUnfollow(userId: number) {
+  if (!confirm('确定要取消关注吗？')) return
+  try {
+    await unfollowUser(userId)
+    follows.value = follows.value.filter(u => u.id !== userId)
+  } catch (e) {
+    console.error('取消关注失败', e)
   }
 }
 
@@ -278,6 +304,13 @@ async function handleSaveProfile() {
           >
             <Heart :size="20"/> 我的喜欢
           </button>
+          <button 
+            @click="activeTab = 'follows'; loadData()"
+            :class="['flex items-center gap-3 w-full p-4 rounded-xl text-left transition-colors font-semibold', 
+              activeTab === 'follows' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground']"
+          >
+            <Users :size="20"/> 我的关注
+          </button>
         </div>
       </div>
     </div>
@@ -289,6 +322,7 @@ async function handleSaveProfile() {
             activeTab === 'adoptions' ? '我领养的宠物' :
             activeTab === 'records' ? '我的申请记录' :
             activeTab === 'posts' ? '我的帖子' :
+            activeTab === 'follows' ? '我的关注' :
             '我的喜欢'
           }}
         </h2>
@@ -447,6 +481,43 @@ async function handleSaveProfile() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="activeTab === 'follows'">
+          <div v-if="follows.length === 0" class="flex flex-col items-center justify-center p-10 text-muted-foreground text-center bg-background min-h-[300px] rounded-2xl">
+            <Users :size="48" class="mb-4 text-border" />
+            <h3 class="text-xl font-bold text-foreground mb-2">还没有关注任何人</h3>
+            <p class="mb-6">去社区发现有趣的用户吧。</p>
+            <RouterLink to="/community" class="bg-primary text-primary-foreground px-6 py-2.5 rounded-full font-bold hover:opacity-90 transition-opacity">
+              去社区
+            </RouterLink>
+          </div>
+          <div v-else class="space-y-4">
+            <div 
+              v-for="u in follows" 
+              :key="u.id"
+              class="flex items-center gap-4 p-4 bg-background rounded-2xl border border-border hover:border-primary/30 transition-colors"
+            >
+              <RouterLink :to="`/user/${u.id}`" class="w-14 h-14 bg-muted rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                <img v-if="u.avatar" :src="u.avatar" alt="用户头像" class="w-full h-full object-cover" />
+                <User v-else :size="28" class="text-muted-foreground" />
+              </RouterLink>
+              
+              <div class="flex-1 min-w-0">
+                <RouterLink :to="`/user/${u.id}`" class="font-bold text-foreground hover:text-primary truncate block">
+                  {{ u.nickname || '用户' + u.id }}
+                </RouterLink>
+                <p v-if="u.region || u.address" class="text-sm text-muted-foreground truncate">{{ u.region || u.address }}</p>
+              </div>
+
+              <button 
+                @click="handleUnfollow(u.id)"
+                class="px-5 py-2 rounded-full text-sm font-semibold border border-border text-muted-foreground hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors shrink-0"
+              >
+                取消关注
+              </button>
             </div>
           </div>
         </div>

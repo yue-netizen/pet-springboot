@@ -157,3 +157,9 @@ export function getMyLikedPosts(page = 1, size = 10) {
     params: { page, size },
   })
 }
+
+export function searchPosts(keyword: string, page = 1, size = 20) {
+  return request.get<any, { data: { records: Post[]; total: number } }>('/post/search', {
+    params: { keyword, page, size },
+  })
+}

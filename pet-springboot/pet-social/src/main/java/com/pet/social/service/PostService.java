@@ -25,4 +25,6 @@ public interface PostService extends IService<Post> {
     Result<Page<Post>> getMyPosts(Long userId, Integer page, Integer size);
 
     Result<Page<Post>> getMyLikedPosts(Long userId, Integer page, Integer size);
+
+    Result<Page<Post>> searchPosts(String keyword, Integer page, Integer size, Long userId);
 }

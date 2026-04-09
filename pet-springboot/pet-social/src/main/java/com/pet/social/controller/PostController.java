@@ -92,4 +92,13 @@ public class PostController {
                                                 @RequestHeader("X-User-Id") Long userId) {
         return postService.getMyLikedPosts(userId, page, size);
     }
+
+    @Operation(summary = "搜索帖子")
+    @GetMapping("/search")
+    public Result<Page<Post>> searchPosts(@RequestParam String keyword,
+                                           @RequestParam(defaultValue = "1") Integer page,
+                                           @RequestParam(defaultValue = "20") Integer size,
+                                           @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return postService.searchPosts(keyword, page, size, userId);
+    }
 }

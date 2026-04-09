@@ -5,6 +5,7 @@ import { User, MapPin, Calendar, Mail, Phone } from 'lucide-vue-next'
 import SocialPost from '@/components/SocialPost.vue'
 import { getUserById } from '@/api/user'
 import { getPostListByUser } from '@/api/social'
+import { followUser, unfollowUser, checkFollowStatus as checkFollow } from '@/api/follow'
 import type { Post } from '@/api/social'
 import { useUserStore } from '@/stores/user'
 
@@ -41,11 +42,8 @@ const loadUser = async () => {
 const checkFollowStatus = async () => {
   if (!userStore.isLoggedIn()) return
   try {
-    const res = await fetch(`/api/follow/check?targetUserId=${userId.value}`, {
-      headers: { 'X-User-Id': String(userStore.userInfo?.id) }
-    })
-    const data = await res.json()
-    isFollowing.value = data.data || false
+    const res = await checkFollow(userId.value)
+    isFollowing.value = res.data || false
   } catch (error) {
     console.error('检查关注状态失败', error)
   }
@@ -60,20 +58,10 @@ const handleFollow = async () => {
   followingLoading.value = true
   try {
     if (isFollowing.value) {
-      await fetch(`/api/follow/${userId.value}`, {
-        method: 'DELETE',
-        headers: { 'X-User-Id': String(userStore.userInfo?.id) }
-      })
+      await unfollowUser(userId.value)
       isFollowing.value = false
     } else {
-      await fetch('/api/follow', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': String(userStore.userInfo?.id)
-        },
-        body: JSON.stringify({ targetUserId: userId.value })
-      })
+      await followUser(userId.value)
       isFollowing.value = true
     }
   } catch (error) {

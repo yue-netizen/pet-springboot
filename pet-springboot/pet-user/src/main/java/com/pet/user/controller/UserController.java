@@ -1,12 +1,17 @@
 package com.pet.user.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.pet.common.dto.UserDTO;
 import com.pet.common.result.Result;
+import com.pet.user.entity.User;
 import com.pet.user.service.UserService;
+import cn.hutool.core.bean.BeanUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "用户管理")
 @RestController
@@ -26,6 +31,17 @@ public class UserController {
     @GetMapping("/username/{username}")
     public Result<UserDTO> getUserByUsername(@PathVariable("username") String username) {
         return userService.getUserByUsername(username);
+    }
+
+    @Operation(summary = "搜索用户（按昵称）")
+    @GetMapping("/search")
+    public List<UserDTO> searchUsers(@RequestParam String keyword) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(User::getNickname, keyword)
+               .or().like(User::getUsername, keyword)
+               .last("LIMIT 10");
+        List<User> users = userService.list(wrapper);
+        return users.stream().map(u -> BeanUtil.copyProperties(u, UserDTO.class)).toList();
     }
 
     @Operation(summary = "获取当前用户信息")

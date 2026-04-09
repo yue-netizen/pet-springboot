@@ -303,4 +303,59 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         return Result.success(resultPage);
     }
+
+    @Override
+    public Result<Page<Post>> searchPosts(String keyword, Integer page, Integer size, Long userId) {
+        LambdaQueryWrapper<Post> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Post::getStatus, 1)
+                .and(w -> w.like(Post::getTitle, keyword)
+                        .or().like(Post::getContent, keyword)
+                        .or().like(Post::getTags, keyword))
+                .orderByDesc(Post::getCreateTime);
+
+        Page<Post> postPage = new Page<>(page, size);
+        Page<Post> result = this.page(postPage, wrapper);
+
+        Set<Long> postUserIds = result.getRecords().stream()
+                .map(Post::getUserId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+
+        try {
+            List<UserDTO> matchedUsers = userFeignClient.searchUsers(keyword);
+            if (matchedUsers != null) {
+                for (UserDTO u : matchedUsers) {
+                    if (!postUserIds.contains(u.getId())) {
+                        LambdaQueryWrapper<Post> userWrapper = new LambdaQueryWrapper<>();
+                        userWrapper.eq(Post::getUserId, u.getId())
+                                .eq(Post::getStatus, 1)
+                                .orderByDesc(Post::getCreateTime);
+                        List<Post> userPosts = this.list(userWrapper);
+                        for (Post p : userPosts) {
+                            p.setUserNickname(u.getNickname() != null ? u.getNickname() : "用户" + p.getUserId());
+                            p.setUserAvatar(u.getAvatar());
+                        }
+                        result.getRecords().addAll(userPosts);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("搜索用户失败", e);
+        }
+
+        if (userId != null) {
+            for (Post post : result.getRecords()) {
+                LambdaQueryWrapper<Like> likeWrapper = new LambdaQueryWrapper<>();
+                likeWrapper.eq(Like::getUserId, userId)
+                        .eq(Like::getTargetId, post.getId())
+                        .eq(Like::getTargetType, 1);
+                long count = likeMapper.selectCount(likeWrapper);
+                post.setLiked(count > 0);
+            }
+        }
+
+        fillUserInfo(result.getRecords());
+
+        return Result.success(result);
+    }
 }

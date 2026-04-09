@@ -6,6 +6,9 @@ import com.pet.common.result.Result;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 @FeignClient(value = ServiceConstants.USER_SERVICE)
 public interface UserFeignClient {
@@ -15,4 +18,7 @@ public interface UserFeignClient {
 
     @GetMapping("/user/username/{username}")
     Result<UserDTO> getUserByUsername(@PathVariable("username") String username);
+
+    @GetMapping("/user/search")
+    List<UserDTO> searchUsers(@RequestParam("keyword") String keyword);
 }

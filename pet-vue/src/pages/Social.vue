@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { Image as ImageIcon, Video, Smile, User, X, Maximize2, Hash } from 'lucide-vue-next'
+import { Image as ImageIcon, Video, Smile, User, X, Maximize2, Hash, Search } from 'lucide-vue-next'
 import SocialPost from '@/components/SocialPost.vue'
-import { getPostList, createPost, uploadImage, uploadVideo, getTrendingTopics, searchTopics, createTopic as createTopicApi } from '@/api/social'
+import { getPostList, createPost, uploadImage, uploadVideo, getTrendingTopics, searchTopics, createTopic as createTopicApi, searchPosts } from '@/api/social'
 import type { Post, Topic } from '@/api/social'
 import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
@@ -10,7 +10,9 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const userStore = useUserStore()
 
-const suggestedUsers = [1, 2, 3]
+const searchKeyword = ref('')
+const isSearching = ref(false)
+const isSearchMode = ref(false)
 
 const emojis = ["😀", "😂", "🥰", "😍", "🤩", "😊", "😇", "🙂", "😉", "😌", "😋", "🤤", "😎", "🤗", "😘", "😚", "😜", "🤪", "😝", "🤑", "🤔", "🤫", "🤭", "😏", "😒", "🙄", "😮", "😯", "😲", "😳", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "😈", "👿", "💀", "☠️", "💩", "🤡", "👹", "👺", "👻", "👽", "👾", "🤖", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾", "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🐝", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶️", "🌽", "🥕", "🧄", "🧅", "🥔", "🍠", "🥐", "🥯", "🍞", "🥖", "🥨", "🧀", "🥚", "🍳", "🧈", "🥞", "🧇", "🥓", "🥩", "🍗", "🍖", "🌭", "🍔", "🍟", "🍕", "🥪", "🥙", "🌮", "🌯", "🥗", "🥘", "🍝", "🍜", "🍲", "🍛", "🍣", "🍱", "🥟", "🦪", "🍤", "🍙", "🍚", "🍘", "🍥", "🥠", "🍢", "🍡", "🍧", "🍨", "🍦", "🥧", "🍰", "🎂", "🍮", "🍭", "🍬", "🍫", "🍿", "🧂", "🥤", "🍵", "🍶", "🍾", "🍷", "🍸", "🍹", "🍺", "🍻", "🥂", "🥃", "🍼", "☕", "🧋", "🧃", "🧉"]
 
@@ -107,6 +109,30 @@ const loadPosts = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleSearch = async () => {
+  const keyword = searchKeyword.value.trim()
+  if (!keyword) return
+
+  isSearching.value = true
+  isSearchMode.value = true
+  loading.value = true
+  try {
+    const res = await searchPosts(keyword, 1, 20)
+    posts.value = res.data.records || []
+  } catch (error) {
+    console.error('搜索帖子失败', error)
+  } finally {
+    isSearching.value = false
+    loading.value = false
+  }
+}
+
+const clearSearch = () => {
+  searchKeyword.value = ''
+  isSearchMode.value = false
+  loadPosts()
 }
 
 const loadTrendingTopics = async () => {
@@ -548,7 +574,14 @@ onUnmounted(() => {
       </div>
 
       <div v-else-if="posts.length === 0" class="text-center py-8 text-muted-foreground">
-        暂无帖子，快来发布第一条吧！
+        {{ isSearchMode ? `未找到与 "${searchKeyword}" 相关的帖子` : '暂无帖子，快来发布第一条吧！' }}
+      </div>
+
+      <div v-if="isSearchMode" class="mb-4 flex items-center justify-between">
+        <span class="text-sm text-muted-foreground">
+          搜索 "{{ searchKeyword }}" 的结果 ({{ posts.length }} 条)
+        </span>
+        <button @click="clearSearch" class="text-sm text-primary hover:underline">清除搜索</button>
       </div>
 
       <SocialPost 
@@ -560,19 +593,31 @@ onUnmounted(() => {
 
     <div class="w-full md:w-80 shrink-0 flex flex-col gap-6">
       <div class="bg-card rounded-3xl p-6 shadow-custom border border-border">
-        <h3 class="text-xl font-bold text-foreground mb-6">推荐关注</h3>
-        <div class="flex flex-col gap-4">
-          <div v-for="val in suggestedUsers" :key="val" class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-muted rounded-full" />
-              <div class="flex flex-col">
-                <span class="font-bold text-sm text-foreground">用户 {{ val }}</span>
-                <span class="text-xs text-muted-foreground">新领养者</span>
-              </div>
-            </div>
-            <button class="text-primary font-bold text-sm hover:underline">关注</button>
-          </div>
+        <h3 class="text-xl font-bold text-foreground mb-4">搜索帖子</h3>
+        <div class="relative">
+          <input
+            v-model="searchKeyword"
+            type="text"
+            placeholder="搜索标题、话题、内容..."
+            class="w-full bg-background border border-border rounded-xl px-4 py-2.5 pl-10 outline-none focus:border-primary transition-colors text-sm"
+            @keyup.enter="handleSearch"
+          />
+          <Search :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <button
+            v-if="searchKeyword"
+            @click="clearSearch"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            ✕
+          </button>
         </div>
+        <button
+          @click="handleSearch"
+          :disabled="isSearching || !searchKeyword.trim()"
+          class="w-full mt-3 bg-primary text-primary-foreground py-2.5 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+        >
+          {{ isSearching ? '搜索中...' : '搜索' }}
+        </button>
       </div>
 
       <div class="bg-card rounded-3xl p-6 shadow-custom border border-border">
