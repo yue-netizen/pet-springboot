@@ -55,6 +55,9 @@ public class PetServiceImpl extends ServiceImpl<PetMapper, Pet> implements PetSe
                 }
             });
         }
+        if (StrUtil.isNotBlank(queryVO.getType())) {
+            wrapper.eq(Pet::getType, queryVO.getType());
+        }
         if (StrUtil.isNotBlank(queryVO.getAge())) {
             wrapper.eq(Pet::getAge, queryVO.getAge());
         }
