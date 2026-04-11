@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pet.common.constant.RedisConstants;
+import com.pet.common.dto.UserDTO;
 import com.pet.common.exception.BusinessException;
+import com.pet.common.feign.UserFeignClient;
 import com.pet.common.result.Result;
 import com.pet.chat.entity.Conversation;
 import com.pet.chat.entity.Message;
@@ -22,6 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -31,6 +36,7 @@ public class ChatServiceImpl extends ServiceImpl<ConversationMapper, Conversatio
     private final MessageMapper messageMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final RabbitTemplate rabbitTemplate;
+    private final UserFeignClient userFeignClient;
 
     @Override
     public Result<List<Conversation>> getConversations(Long userId) {
@@ -41,7 +47,75 @@ public class ChatServiceImpl extends ServiceImpl<ConversationMapper, Conversatio
                 .orderByDesc(Conversation::getUpdateTime);
         
         List<Conversation> conversations = this.list(wrapper);
+
+        Set<Long> userIds = conversations.stream()
+                .flatMap(c -> java.util.Set.of(c.getUser1Id(), c.getUser2Id()).stream())
+                .collect(Collectors.toSet());
+
+        Map<Long, UserDTO> userMap = userIds.stream()
+                .collect(Collectors.toMap(
+                        id -> id,
+                        id -> {
+                            try {
+                                return userFeignClient.getUserById(id).getData();
+                            } catch (Exception e) {
+                                log.error("获取用户信息失败: {}", id, e);
+                                return null;
+                            }
+                        },
+                        (a, b) -> a
+                ));
+
+        for (Conversation conv : conversations) {
+            UserDTO user1 = userMap.get(conv.getUser1Id());
+            if (user1 != null) {
+                conv.setUser1Nickname(user1.getNickname());
+                conv.setUser1Avatar(user1.getAvatar());
+            }
+            UserDTO user2 = userMap.get(conv.getUser2Id());
+            if (user2 != null) {
+                conv.setUser2Nickname(user2.getNickname());
+                conv.setUser2Avatar(user2.getAvatar());
+            }
+        }
+
         return Result.success(conversations);
+    }
+
+    @Override
+    public Result<Conversation> getOrCreateConversation(Long userId, Long targetUserId) {
+        LambdaQueryWrapper<Conversation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.and(w -> w.and(w1 -> w1.eq(Conversation::getUser1Id, userId)
+                                        .eq(Conversation::getUser2Id, targetUserId))
+                        .or(w2 -> w2.eq(Conversation::getUser1Id, targetUserId)
+                                        .eq(Conversation::getUser2Id, userId)));
+
+        Conversation conversation = this.getOne(wrapper, false);
+
+        if (conversation == null) {
+            conversation = new Conversation();
+            conversation.setUser1Id(userId);
+            conversation.setUser2Id(targetUserId);
+            conversation.setLastMessage("");
+            conversation.setUnreadCount1(0);
+            conversation.setUnreadCount2(0);
+            conversation.setStatus(1);
+            this.save(conversation);
+        }
+
+        UserDTO user1 = userFeignClient.getUserById(userId).getData();
+        UserDTO user2 = userFeignClient.getUserById(targetUserId).getData();
+
+        if (user1 != null) {
+            conversation.setUser1Nickname(user1.getNickname());
+            conversation.setUser1Avatar(user1.getAvatar());
+        }
+        if (user2 != null) {
+            conversation.setUser2Nickname(user2.getNickname());
+            conversation.setUser2Avatar(user2.getAvatar());
+        }
+
+        return Result.success(conversation);
     }
 
     @Override
@@ -84,11 +158,12 @@ public class ChatServiceImpl extends ServiceImpl<ConversationMapper, Conversatio
         message.setSenderId(senderId);
         message.setReceiverId(receiverId);
         message.setContent(messageVO.getContent());
-        message.setType(messageVO.getType());
+        message.setType(messageVO.getType() != null ? messageVO.getType() : 1);
         message.setStatus(0);
         messageMapper.insert(message);
         
-        conversation.setLastMessage(messageVO.getContent());
+        String lastMsg = messageVO.getType() != null && messageVO.getType() == 2 ? "[图片]" : messageVO.getContent();
+        conversation.setLastMessage(lastMsg);
         if (conversation.getUser1Id().equals(senderId)) {
             conversation.setUnreadCount2(conversation.getUnreadCount2() + 1);
         } else {
@@ -99,7 +174,11 @@ public class ChatServiceImpl extends ServiceImpl<ConversationMapper, Conversatio
         String unreadKey = RedisConstants.CHAT_UNREAD_KEY + receiverId;
         redisTemplate.opsForValue().increment(unreadKey);
         
-        rabbitTemplate.convertAndSend("chat.exchange", "chat.message", message);
+        try {
+            rabbitTemplate.convertAndSend("chat.exchange", "chat.message", message);
+        } catch (Exception e) {
+            log.warn("消息推送失败: {}", e.getMessage());
+        }
         
         return Result.success(message);
     }

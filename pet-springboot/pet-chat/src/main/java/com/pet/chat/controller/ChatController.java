@@ -28,6 +28,13 @@ public class ChatController {
         return chatService.getConversations(userId);
     }
 
+    @Operation(summary = "获取或创建对话")
+    @GetMapping("/conversation/with/{targetUserId}")
+    public Result<Conversation> getOrCreateConversation(@PathVariable Long targetUserId,
+                                                        @RequestHeader("X-User-Id") Long userId) {
+        return chatService.getOrCreateConversation(userId, targetUserId);
+    }
+
     @Operation(summary = "获取消息列表")
     @GetMapping("/messages/{conversationId}")
     public Result<Page<Message>> getMessages(@PathVariable Long conversationId,

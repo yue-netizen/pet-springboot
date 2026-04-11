@@ -1,5 +1,12 @@
 server:
   port: 9004
+  tomcat:
+    max-http-form-post-size: 50MB
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+      enabled: true
 
 spring:
   application:

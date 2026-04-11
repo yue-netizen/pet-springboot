@@ -8,6 +8,10 @@ export interface Conversation {
   unreadCount1: number
   unreadCount2: number
   updateTime: string
+  user1Nickname?: string
+  user1Avatar?: string
+  user2Nickname?: string
+  user2Avatar?: string
 }
 
 export interface Message {
@@ -29,6 +33,10 @@ export interface MessageSend {
 
 export function getConversations() {
   return request.get<any, { data: Conversation[] }>('/chat/conversations')
+}
+
+export function getOrCreateConversation(targetUserId: number) {
+  return request.get<any, { data: Conversation }>(`/chat/conversation/with/${targetUserId}`)
 }
 
 export function getMessages(conversationId: number, page = 1, size = 20) {

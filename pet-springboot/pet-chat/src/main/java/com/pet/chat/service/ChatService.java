@@ -13,6 +13,8 @@ public interface ChatService extends IService<Conversation> {
 
     Result<List<Conversation>> getConversations(Long userId);
 
+    Result<Conversation> getOrCreateConversation(Long userId, Long targetUserId);
+
     Result<Page<Message>> getMessages(Long conversationId, Integer page, Integer size);
 
     Result<Message> sendMessage(MessageVO messageVO, Long senderId);

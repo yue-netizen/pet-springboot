@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
-import { User, MapPin, Calendar, Mail, Phone } from 'lucide-vue-next'
+import { useRoute, useRouter } from 'vue-router'
+import { User, MapPin, Calendar, Mail, Phone, MessageCircle } from 'lucide-vue-next'
 import SocialPost from '@/components/SocialPost.vue'
 import { getUserById } from '@/api/user'
 import { getPostListByUser } from '@/api/social'
@@ -10,6 +10,7 @@ import type { Post } from '@/api/social'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 const userId = computed(() => Number(route.params.id))
 
@@ -94,6 +95,14 @@ const formatBirthday = (birthday: string) => {
   const date = new Date(birthday)
   return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
 }
+
+const handleSendMessage = () => {
+  if (!userStore.isLoggedIn()) {
+    alert('请先登录')
+    return
+  }
+  router.push({ name: 'Chat', query: { userId: userId.value } })
+}
 </script>
 
 <template>
@@ -144,20 +153,28 @@ const formatBirthday = (birthday: string) => {
             <div class="text-2xl font-bold text-foreground">{{ posts.length }}</div>
             <div class="text-sm text-muted-foreground">帖子</div>
           </div>
-          <button
-            v-if="!isOwnProfile"
-            @click="handleFollow"
-            :disabled="followingLoading"
-            :class="[
-              'px-8 py-2.5 rounded-full font-bold text-sm transition-all',
-              isFollowing
-                ? 'bg-muted text-foreground hover:bg-border'
-                : 'bg-primary text-primary-foreground hover:opacity-90',
-              followingLoading && 'opacity-50 cursor-not-allowed'
-            ]"
-          >
-            {{ followingLoading ? '...' : (isFollowing ? '已关注' : '+ 关注') }}
-          </button>
+          <div v-if="!isOwnProfile" class="flex gap-2">
+            <button
+              @click="handleFollow"
+              :disabled="followingLoading"
+              :class="[
+                'px-6 py-2.5 rounded-full font-bold text-sm transition-all',
+                isFollowing
+                  ? 'bg-muted text-foreground hover:bg-border'
+                  : 'bg-primary text-primary-foreground hover:opacity-90',
+                followingLoading && 'opacity-50 cursor-not-allowed'
+              ]"
+            >
+              {{ followingLoading ? '...' : (isFollowing ? '已关注' : '+ 关注') }}
+            </button>
+            <button
+              @click="handleSendMessage"
+              class="px-4 py-2.5 rounded-full font-bold text-sm bg-background border border-border text-foreground hover:bg-muted/50 transition-all flex items-center gap-1"
+            >
+              <MessageCircle :size="16" />
+              私信
+            </button>
+          </div>
         </div>
       </div>
     </div>
