@@ -31,6 +31,16 @@ export interface MessageSend {
   type?: number
 }
 
+export interface AiChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AiChatRequest {
+  message: string
+  sessionId?: string
+}
+
 export function getConversations() {
   return request.get<any, { data: Conversation[] }>('/chat/conversations')
 }
@@ -56,4 +66,20 @@ export function markAsRead(conversationId: number) {
 
 export function getUnreadCount() {
   return request.get<any, { data: number }>('/chat/unread')
+}
+
+export function sendAiMessage(data: AiChatRequest) {
+  return request.post<any, { data: string }>('/ai/chat', data)
+}
+
+export function getAiChatHistory(sessionId: string) {
+  return request.get<any, { data: AiChatMessage[] }>(`/ai/history/${sessionId}`)
+}
+
+export function clearAiSession(sessionId: string) {
+  return request.delete(`/ai/session/${sessionId}`)
+}
+
+export function getAiSessions() {
+  return request.get<any, { data: string[] }>('/ai/sessions')
 }

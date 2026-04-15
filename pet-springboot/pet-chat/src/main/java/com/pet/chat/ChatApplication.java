@@ -10,7 +10,7 @@ import org.springframework.context.annotation.ComponentScan;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = "com.pet.common.feign")
-@MapperScan("com.pet.chat.mapper")
+@MapperScan({"com.pet.chat.mapper", "com.pet.chat.ai.mapper"})
 @ComponentScan(basePackages = {"com.pet.chat", "com.pet.common"})
 public class ChatApplication {
 

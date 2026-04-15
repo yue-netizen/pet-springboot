@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Send, Users, MoreVertical, Search, MessageCircle, Smile, Image as ImageIcon, X } from 'lucide-vue-next'
+import { Send, Users, MoreVertical, Search, MessageCircle, Smile, Image as ImageIcon, X, Bot } from 'lucide-vue-next'
 import {
   getConversations,
   getOrCreateConversation,
   getMessages,
   sendMessage,
   markAsRead,
+  sendAiMessage,
+  getAiChatHistory,
+  getAiSessions,
   type Conversation,
-  type Message
+  type Message,
+  type AiChatMessage
 } from '@/api/chat'
 import { getUserById } from '@/api/user'
 import { useUserStore } from '@/stores/user'
@@ -19,6 +23,7 @@ const userStore = useUserStore()
 
 const conversations = ref<Conversation[]>([])
 const messages = ref<Message[]>([])
+const aiMessages = ref<AiChatMessage[]>([])
 const currentConversationId = ref<number | null>(null)
 const currentChatUser = ref<any>(null)
 const currentUserInfo = ref<any>(null)
@@ -27,6 +32,8 @@ const loading = ref(false)
 const messagesLoading = ref(false)
 const sendingMessage = ref(false)
 const searchKeyword = ref('')
+const isAiChat = ref(false)
+const aiSessionId = ref('')
 
 const showEmojiPicker = ref(false)
 const showImageUpload = ref(false)
@@ -71,6 +78,8 @@ const loadMessages = async (conversationId: number) => {
 }
 
 const selectConversation = async (conversation: Conversation) => {
+  isAiChat.value = false
+  aiMessages.value = []
   currentConversationId.value = conversation.id
   const otherUserId = conversation.user1Id === currentUserId ? conversation.user2Id : conversation.user1Id
   const isUser1 = conversation.user1Id !== currentUserId
@@ -166,7 +175,9 @@ const handleSendText = async () => {
 }
 
 const handleSend = () => {
-  if (selectedImage.value) {
+  if (isAiChat.value) {
+    handleSendAiMessage()
+  } else if (selectedImage.value) {
     handleSendImage()
   } else {
     handleSendText()
@@ -177,6 +188,77 @@ const getReceiverId = () => {
   return conversations.value.find(c => c.id === currentConversationId.value)?.user1Id === currentUserId
     ? conversations.value.find(c => c.id === currentConversationId.value)!.user2Id
     : conversations.value.find(c => c.id === currentConversationId.value)!.user1Id
+}
+
+const selectAiChat = async () => {
+  isAiChat.value = true
+  currentConversationId.value = null
+  messages.value = []
+  showImageUpload.value = false
+  selectedImage.value = null
+  imagePreview.value = ''
+  newMessage.value = ''
+  currentChatUser.value = {
+    id: -1,
+    nickname: '小爪',
+    avatar: ''
+  }
+  if (!aiSessionId.value) {
+    try {
+      const res = await getAiSessions()
+      const sessions = res.data || []
+      if (sessions.length > 0) {
+        aiSessionId.value = sessions[0]
+      } else {
+        aiSessionId.value = 'ai_' + currentUserId + '_' + Date.now()
+      }
+    } catch (error) {
+      console.error('获取AI会话列表失败', error)
+      aiSessionId.value = 'ai_' + currentUserId + '_' + Date.now()
+    }
+  }
+  loadAiMessages()
+}
+
+const loadAiMessages = async () => {
+  if (!aiSessionId.value) return
+  messagesLoading.value = true
+  try {
+    const res = await getAiChatHistory(aiSessionId.value)
+    aiMessages.value = res.data || []
+  } catch (error) {
+    console.error('加载AI历史消息失败', error)
+  } finally {
+    messagesLoading.value = false
+  }
+}
+
+const handleSendAiMessage = async () => {
+  if (!newMessage.value.trim() || sendingMessage.value) return
+  const userMsg = newMessage.value.trim()
+  newMessage.value = ''
+  aiMessages.value.push({ role: 'user', content: userMsg })
+  await nextTick()
+  scrollToBottom()
+  sendingMessage.value = true
+  try {
+    const res = await sendAiMessage({ message: userMsg, sessionId: aiSessionId.value })
+    if (res.data) {
+      const data = res.data as any
+      if (data.sessionId && !aiSessionId.value) {
+        aiSessionId.value = data.sessionId
+      }
+      const messageContent = data.message || data
+      aiMessages.value.push({ role: 'assistant', content: messageContent })
+    }
+  } catch (error) {
+    console.error('发送AI消息失败', error)
+    aiMessages.value.push({ role: 'assistant', content: '抱歉，小爪暂时无法回答您的问题，请稍后再试 🙏' })
+  } finally {
+    sendingMessage.value = false
+    await nextTick()
+    scrollToBottom()
+  }
 }
 
 const selectEmoji = (emoji: string) => {
@@ -347,6 +429,23 @@ const closeAllPopups = () => {
       
       <div v-else class="flex-1 overflow-y-auto">
         <div 
+          @click="selectAiChat(); showChatInfo = false"
+          :class="[
+            'flex items-start gap-3 p-4 border-b border-border cursor-pointer transition-colors',
+            isAiChat ? 'bg-primary/5' : 'hover:bg-muted/50'
+          ]"
+        >
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-green-400 flex-shrink-0 flex items-center justify-center">
+            <Bot :size="24" class="text-white" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex justify-between items-baseline mb-1">
+              <h4 class="font-bold text-foreground text-sm truncate">小爪 🐾</h4>
+            </div>
+            <p class="text-sm text-muted-foreground truncate">智能客服助手</p>
+          </div>
+        </div>
+        <div 
           v-for="conv in conversations.filter(c => !searchKeyword || 
             ((c.user1Id === currentUserId ? c.user2Nickname : c.user1Nickname) || '').includes(searchKeyword)
           )" 
@@ -388,10 +487,13 @@ const closeAllPopups = () => {
     </div>
 
     <div class="flex-1 flex flex-col bg-card relative">
-      <template v-if="currentConversationId && currentChatUser">
+      <template v-if="(currentConversationId || isAiChat) && currentChatUser">
         <div class="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-primary/20 flex-shrink-0 overflow-hidden">
+            <div v-if="isAiChat" class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-green-400 flex-shrink-0 flex items-center justify-center">
+              <Bot :size="20" class="text-white" />
+            </div>
+            <div v-else class="w-10 h-10 rounded-full bg-primary/20 flex-shrink-0 overflow-hidden">
               <img v-if="currentChatUser.avatar" :src="currentChatUser.avatar" alt="" class="w-full h-full object-cover" />
               <Users v-else :size="20" class="m-auto mt-2.5 text-primary" />
             </div>
@@ -399,7 +501,7 @@ const closeAllPopups = () => {
               <h3 class="font-bold text-foreground">{{ currentChatUser.nickname || '用户' + currentChatUser.id }}</h3>
             </div>
           </div>
-          <button @click.stop="showChatInfo = !showChatInfo" class="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground">
+          <button v-if="!isAiChat" @click.stop="showChatInfo = !showChatInfo" class="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground">
             <MoreVertical :size="20" />
           </button>
         </div>
@@ -407,6 +509,32 @@ const closeAllPopups = () => {
         <div id="messages-container" class="flex-1 overflow-y-auto px-4 py-4 flex flex-col bg-background/50 space-y-3">
           <div v-if="messagesLoading" class="text-center py-8 text-muted-foreground">加载消息中...</div>
           
+          <div v-else-if="isAiChat && aiMessages.length > 0">
+            <div v-for="(msg, index) in aiMessages" :key="index">
+              <div :class="['flex w-full mb-1', msg.role === 'user' ? 'justify-end' : 'justify-start']">
+                
+                <div v-if="msg.role === 'assistant'" class="flex items-end gap-2 max-w-[70%]">
+                  <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-green-400 flex-shrink-0 flex items-center justify-center">
+                    <Bot :size="18" class="text-white" />
+                  </div>
+                  <div class="bg-card border border-border px-4 py-2.5 rounded-2xl rounded-bl-sm text-foreground shadow-sm">
+                    <span class="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{{ msg.content }}</span>
+                  </div>
+                </div>
+
+                <div v-else class="flex items-end gap-2 max-w-[70%]">
+                  <div class="bg-primary text-primary-foreground px-4 py-2.5 rounded-2xl rounded-br-sm shadow-sm">
+                    <span class="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{{ msg.content }}</span>
+                  </div>
+                  <div class="w-9 h-9 rounded-full bg-primary/30 flex-shrink-0 overflow-hidden">
+                    <img v-if="myAvatar" :src="myAvatar" alt="" class="w-full h-full object-cover" />
+                    <Users v-else :size="18" class="m-auto mt-2 text-primary-foreground" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div v-else-if="messages.length > 0">
             <div v-for="(msg, index) in messages" :key="msg.id">
               
@@ -454,11 +582,11 @@ const closeAllPopups = () => {
             <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
               <MessageCircle :size="28" class="text-primary/40" />
             </div>
-            暂无消息，开始聊天吧~
+            {{ isAiChat ? '嗨！我是小爪，有什么可以帮您的吗？🐾' : '暂无消息，开始聊天吧~' }}
           </div>
         </div>
 
-        <div v-if="imagePreview" class="px-4 py-2 bg-card border-t border-border">
+        <div v-if="imagePreview && !isAiChat" class="px-4 py-2 bg-card border-t border-border">
           <div class="relative inline-block">
             <img :src="imagePreview" alt="预览" class="h-16 w-16 object-cover rounded-lg border border-border" />
             <button @click="removeSelectedImage" class="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-white rounded-full flex items-center justify-center text-xs hover:bg-destructive/80">
@@ -470,7 +598,7 @@ const closeAllPopups = () => {
         <div class="p-4 border-t border-border bg-card">
           <div class="flex items-end gap-2 bg-background border border-border rounded-2xl px-3 py-2">
             
-            <div class="relative">
+            <div v-if="!isAiChat" class="relative">
               <button @click.stop="showEmojiPicker = !showEmojiPicker" class="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground">
                 <Smile :size="22" />
               </button>
@@ -487,23 +615,23 @@ const closeAllPopups = () => {
               </div>
             </div>
 
-            <button @click="triggerImageSelect" class="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground cursor-pointer">
+            <button v-if="!isAiChat" @click="triggerImageSelect" class="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground cursor-pointer">
               <ImageIcon :size="22" />
             </button>
-            <input ref="imageInputRef" type="file" accept="image/*" class="hidden" @change="handleImageSelect" />
+            <input v-if="!isAiChat" ref="imageInputRef" type="file" accept="image/*" class="hidden" @change="handleImageSelect" />
 
             <input 
               v-model="newMessage"
               type="text" 
-              placeholder="输入您的消息..." 
+              :placeholder="isAiChat ? '和小爪聊聊吧...' : '输入您的消息...'"
               class="flex-1 bg-transparent border-none outline-none px-2 text-foreground text-sm min-h-[36px]"
-              @keyup.enter="handleSendText"
+              @keyup.enter="isAiChat ? handleSendAiMessage() : handleSendText()"
               :disabled="sendingMessage"
             />
             
             <button 
               @click="handleSend"
-              :disabled="(!newMessage.trim() && !selectedImage) || sendingMessage"
+              :disabled="(!newMessage.trim() && !(selectedImage && !isAiChat)) || sendingMessage"
               class="w-9 h-9 bg-primary text-primary-foreground rounded-full flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
             >
               <Send :size="16" class="-mr-0.5" />

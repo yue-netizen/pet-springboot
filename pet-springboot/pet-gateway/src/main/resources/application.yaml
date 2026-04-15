@@ -51,7 +51,7 @@ spring:
         - id: pet-chat
           uri: lb://pet-chat
           predicates:
-            - Path=/api/chat/**,/api/message/**
+            - Path=/api/chat/**,/api/message/**,/api/ai/**
           filters:
             - StripPrefix=1
         - id: pet-donation
