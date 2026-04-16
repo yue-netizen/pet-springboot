@@ -108,15 +108,33 @@ public class PetQueryTool {
                 String breed = targetPet.get("breed") != null ? targetPet.get("breed").toString() : "未知";
                 Object age = targetPet.get("age");
                 String type = targetPet.get("type") != null ? targetPet.get("type").toString() : "未知";
+                String gender = targetPet.get("gender") != null ? targetPet.get("gender").toString() : null;
+                String description = targetPet.get("description") != null ? targetPet.get("description").toString() : null;
+                String story = targetPet.get("story") != null ? targetPet.get("story").toString() : null;
                 
                 StringBuilder sb = new StringBuilder();
-                sb.append("✅ 找到宠物信息：\n\n");
-                sb.append("**宠物名称**: ").append(name).append("\n");
+                sb.append("找到一只名叫**").append(name).append("**的可爱").append(type).append("啦～让我们来看看它的信息：\n\n");
+                sb.append("---\n");
+                sb.append("**🐾 ").append(name).append("**\n");
+                sb.append("- 品种: ").append(breed);
+                if (age != null) sb.append("  |  年龄: ").append(age);
+                if (gender != null) sb.append("  |  性别: ").append(gender);
+                sb.append("\n");
+                
+                if (description != null && !description.isBlank()) {
+                    String desc = description.length() > 120 ? description.substring(0, 120) + "..." : description;
+                    sb.append("- 简介: ").append(desc).append("\n");
+                }
+                
+                if (story != null && !story.isBlank()) {
+                    String storyTitle = extractStoryTitle(story);
+                    String storyContent = story.length() > 300 ? story.substring(0, 300) + "..." : story;
+                    sb.append("\n📖 **它的故事《").append(storyTitle).append("》**:\n");
+                    sb.append(storyContent).append("\n");
+                }
+                
+                sb.append("\n---\n");
                 sb.append("**🆔 数据库ID**: ").append(id).append(" ← 这是startAdoptionForm需要的petId\n");
-                sb.append("**品种**: ").append(breed).append("\n");
-                sb.append("**类型**: ").append(type).append("\n");
-                if (age != null) sb.append("**年龄**: ").append(age).append("\n");
-                if (targetPet.get("gender") != null) sb.append("**性别**: ").append(targetPet.get("gender")).append("\n");
                 
                 if (exactMatch == null && records.size() > 1) {
                     sb.append("\n⚠️ 未找到完全匹配的名称，显示最接近的结果。如需查看所有匹配结果请使用 queryPets 工具。\n");
@@ -130,6 +148,23 @@ public class PetQueryTool {
             log.error("查询宠物失败", e);
             return "系统暂时无法查询宠物信息，请稍后再试。";
         }
+    }
+
+    private String extractStoryTitle(String story) {
+        if (story == null || story.isBlank()) {
+            return "它的故事";
+        }
+        if (story.contains("《") && story.contains("》")) {
+            int start = story.indexOf("《") + 1;
+            int end = story.indexOf("》");
+            if (start < end) {
+                return story.substring(start, end);
+            }
+        }
+        if (story.length() > 10) {
+            return story.substring(0, 8) + "...";
+        }
+        return "它的故事";
     }
 
     @Tool(description = "获取所有可领养的宠物类型和品种信息，帮助用户了解平台有哪些宠物")

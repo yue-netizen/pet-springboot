@@ -41,7 +41,14 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             "/story/list",
             "/story/",
             "/story-comment/story/",
-            "/recruitment/list"
+            "/recruitment/list",
+            "/tips/list",
+            "/tips/",
+            "/topic/trending",
+            "/topic/search",
+            "/post/list",
+            "/post/search",
+            "/post/"
     );
 
     @Override

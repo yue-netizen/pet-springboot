@@ -42,6 +42,11 @@ request.interceptors.response.use(
     }
   },
   (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+      window.location.href = '/'
+    }
     return Promise.reject(error)
   }
 )
