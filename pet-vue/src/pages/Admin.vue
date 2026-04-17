@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { getAllUsers, updateUserByAdmin, deleteUser, updateUserStatus, getConfigList, updateConfig, uploadImage, type SysConfig, type UserDTO, getPetList, getPetById, addPet, updatePet, deletePet, type Pet, getAdoptionList, getAdoptionDetail, reviewAdoption, updateAdoption, type AdoptionDetail, getPostList, getPostById, deletePost, type Post } from '@/api/admin'
+import { getAllUsers, updateUserByAdmin, deleteUser, updateUserStatus, getConfigList, updateConfig, uploadImage, type SysConfig, type UserDTO, getPetList, getPetById, addPet, updatePet, deletePet, type Pet, getAdoptionList, getAdoptionDetail, reviewAdoption, updateAdoption, type AdoptionDetail, getPostList, getPostById, deletePost, type Post, getJobList, addJob as adminAddJob, updateJob as adminUpdateJob, deleteJob as adminDeleteJob, type Job, getApplicationList, type JobApplication, getEmployeeList, approveApplication as adminApproveApplication, rejectApplication as adminRejectApplication, updateEmployee as adminUpdateEmployee, updateEmployeeStatus as adminUpdateEmployeeStatus, deleteEmployee as adminDeleteEmployee, type Employee } from '@/api/admin'
 import { getTipsList, getTipsById, createTips, updateTips, deleteTips, type PetTips } from '@/api/tips'
 
 const router = useRouter()
@@ -22,6 +22,9 @@ const tabs = [
   { key: 'pets', label: '宠物管理' },
   { key: 'adoptions', label: '领养申请' },
   { key: 'posts', label: '帖子管理' },
+  { key: 'jobs', label: '岗位管理' },
+  { key: 'applications', label: '求职人员' },
+  { key: 'employees', label: '管理员工' },
   { key: 'about', label: '关于我们' },
   { key: 'rules', label: '领养规则' },
   { key: 'tips', label: '养宠贴士' }
@@ -86,6 +89,34 @@ const postsList = ref<Post[]>([])
 const showPostDetailModal = ref(false)
 const viewingPost = ref<Post | null>(null)
 
+const jobsList = ref<Job[]>([])
+const showJobModal = ref(false)
+const editingJob = ref<Job | null>(null)
+const jobForm = ref<Job>({
+  title: '',
+  type: '',
+  location: '',
+  description: '',
+  requirement: '',
+  status: 1
+})
+
+const jobTypes = ['全职', '兼职', '兼职/周末', '远程', '实习']
+
+const applicationsList = ref<JobApplication[]>([])
+const employeesList = ref<Employee[]>([])
+const showEmployeeModal = ref(false)
+const editingEmployee = ref<Employee | null>(null)
+const employeeForm = ref<Employee>({
+  name: '',
+  phone: '',
+  email: '',
+  status: 1
+})
+
+const showApplicationDetailModal = ref(false)
+const viewingApplication = ref<JobApplication | null>(null)
+
 const configMap = computed(() => {
   const map: Record<string, string> = {}
   configs.value.forEach(c => {
@@ -126,6 +157,9 @@ async function loadData() {
     await loadPets()
     await loadAdoptions()
     await loadPosts()
+    await loadJobs()
+    await loadApplications()
+    await loadEmployees()
   } catch (e) {
     console.error('加载数据失败', e)
   } finally {
@@ -170,6 +204,136 @@ async function loadPosts() {
   } catch (e) {
     console.error('加载帖子失败', e)
     postsList.value = []
+  }
+}
+
+async function loadJobs() {
+  try {
+    const res = await getJobList(1, 100)
+    jobsList.value = res.data?.records || []
+  } catch (e) {
+    console.error('加载岗位失败', e)
+    jobsList.value = []
+  }
+}
+
+async function loadApplications() {
+  try {
+    const res = await getApplicationList(1, 100)
+    applicationsList.value = res.data?.records || []
+  } catch (e) {
+    console.error('加载求职人员失败', e)
+    applicationsList.value = []
+  }
+}
+
+async function loadEmployees() {
+  try {
+    const res = await getEmployeeList(1, 100)
+    employeesList.value = res.data?.records || []
+  } catch (e) {
+    console.error('加载员工失败', e)
+    employeesList.value = []
+  }
+}
+
+async function handleApproveApplication(applicationId: number) {
+  if (!confirm('确定要同意该求职申请吗？')) return
+  try {
+    await adminApproveApplication(applicationId)
+    await loadApplications()
+    alert('已同意申请！')
+  } catch (e: any) {
+    console.error('同意申请失败', e)
+    alert(e.message || '操作失败，请重试')
+  }
+}
+
+async function handleRejectApplication(applicationId: number) {
+  if (!confirm('确定要拒绝该求职申请吗？')) return
+  try {
+    await adminRejectApplication(applicationId)
+    await loadApplications()
+    alert('已拒绝申请！')
+  } catch (e: any) {
+    console.error('拒绝申请失败', e)
+    alert(e.message || '操作失败，请重试')
+  }
+}
+
+function viewApplicationDetail(app: JobApplication) {
+  viewingApplication.value = app
+  showApplicationDetailModal.value = true
+}
+
+function closeApplicationDetail() {
+  showApplicationDetailModal.value = false
+  viewingApplication.value = null
+}
+
+async function handleApproveFromDetail() {
+  const applicationId = viewingApplication.value?.id
+  if (!applicationId) return
+  closeApplicationDetail()
+  await handleApproveApplication(applicationId)
+}
+
+async function handleRejectFromDetail() {
+  const applicationId = viewingApplication.value?.id
+  if (!applicationId) return
+  closeApplicationDetail()
+  await handleRejectApplication(applicationId)
+}
+
+function openEditEmployee(employee: Employee) {
+  employeeForm.value = { ...employee }
+  editingEmployee.value = employee
+  showEmployeeModal.value = true
+}
+
+async function saveEmployee() {
+  if (!employeeForm.value.name.trim()) {
+    alert('请填写姓名！')
+    return
+  }
+
+  saving.value = true
+  try {
+    await adminUpdateEmployee(employeeForm.value)
+    showEmployeeModal.value = false
+    await loadEmployees()
+    alert('保存成功！')
+  } catch (e) {
+    console.error('保存失败', e)
+    alert('保存失败，请重试')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function toggleEmployeeStatus(employee: Employee) {
+  const newStatus = employee.status === 1 ? 0 : 1
+  const statusText = newStatus === 1 ? '在职' : '离职'
+  if (!confirm(`确定要将该员工状态改为"${statusText}"吗？`)) return
+  
+  try {
+    await adminUpdateEmployeeStatus(employee.id!, newStatus)
+    employee.status = newStatus
+  } catch (e) {
+    console.error('更新状态失败', e)
+    alert('更新状态失败，请重试')
+  }
+}
+
+async function deleteEmployeeConfirm(employee: Employee) {
+  if (!confirm(`确定要删除员工 "${employee.name}" 吗？`)) return
+  try {
+    await adminDeleteEmployee(employee.id!)
+    await loadEmployees()
+    alert('删除成功！')
+  } catch (e) {
+    console.error('删除失败', e)
+    alert('删除失败，请重试')
   }
 }
 
@@ -413,6 +577,72 @@ async function deletePetConfirm(pet: Pet) {
   } catch (e) {
     console.error('删除失败', e)
     alert('删除失败，请重试')
+  }
+}
+
+function openCreateJob() {
+  jobForm.value = {
+    title: '',
+    type: '',
+    location: '',
+    description: '',
+    requirement: '',
+    status: 1
+  }
+  editingJob.value = null
+  showJobModal.value = true
+}
+
+function openEditJob(job: Job) {
+  jobForm.value = { ...job }
+  editingJob.value = job
+  showJobModal.value = true
+}
+
+async function saveJob() {
+  if (!jobForm.value.title.trim() || !jobForm.value.type.trim()) {
+    alert('请填写岗位名称和类型！')
+    return
+  }
+
+  saving.value = true
+  try {
+    if (editingJob.value) {
+      await adminUpdateJob(jobForm.value)
+    } else {
+      await adminAddJob(jobForm.value)
+    }
+    showJobModal.value = false
+    await loadJobs()
+    alert('保存成功！')
+  } catch (e) {
+    console.error('保存失败', e)
+    alert('保存失败，请重试')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function deleteJobConfirm(job: Job) {
+  if (!confirm(`确定要删除岗位 "${job.title}" 吗？`)) return
+  try {
+    await adminDeleteJob(job.id!)
+    await loadJobs()
+    alert('删除成功！')
+  } catch (e) {
+    console.error('删除失败', e)
+    alert('删除失败，请重试')
+  }
+}
+
+async function toggleJobStatus(job: Job) {
+  const newStatus = job.status === 1 ? 0 : 1
+  try {
+    await adminUpdateJob({ ...job, status: newStatus })
+    job.status = newStatus
+  } catch (e) {
+    console.error('更新状态失败', e)
+    alert('更新状态失败，请重试')
   }
 }
 
@@ -1240,6 +1470,334 @@ onMounted(() => {
             </div>
           </div>
 
+          <div v-if="activeTab === 'jobs'" class="space-y-6">
+            <div class="flex justify-between items-center">
+              <h2 class="text-xl font-bold text-foreground">岗位管理</h2>
+              <button
+                @click="openCreateJob"
+                class="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity"
+              >
+                + 新增岗位
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-border">
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">ID</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">岗位名称</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">类型</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">地点</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">状态</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">创建时间</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="job in jobsList" :key="job.id" class="border-b border-border/50 hover:bg-muted/30">
+                    <td class="py-3 px-4">{{ job.id }}</td>
+                    <td class="py-3 px-4 font-medium">{{ job.title }}</td>
+                    <td class="py-3 px-4">
+                      <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium">{{ job.type }}</span>
+                    </td>
+                    <td class="py-3 px-4 text-muted-foreground">{{ job.location || '-' }}</td>
+                    <td class="py-3 px-4">
+                      <span :class="[
+                        'px-2 py-1 rounded-full text-xs font-medium',
+                        job.status === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      ]">
+                        {{ job.status === 1 ? '招聘中' : '已关闭' }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 text-muted-foreground text-sm">
+                      {{ formatDate(job.createTime) }}
+                    </td>
+                    <td class="py-3 px-4">
+                      <div class="flex gap-2">
+                        <button
+                          @click="openEditJob(job)"
+                          class="px-3 py-1 text-sm rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
+                        >
+                          编辑
+                        </button>
+                        <button
+                          @click="toggleJobStatus(job)"
+                          :class="[
+                            'px-3 py-1 text-sm rounded-lg transition-colors',
+                            job.status === 1 ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700' : 'bg-green-100 hover:bg-green-200 text-green-700'
+                          ]"
+                        >
+                          {{ job.status === 1 ? '关闭' : '开启' }}
+                        </button>
+                        <button
+                          @click="deleteJobConfirm(job)"
+                          class="px-3 py-1 text-sm rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div v-if="jobsList.length === 0 && !loading" class="text-center py-12 text-muted-foreground">
+                暂无岗位
+              </div>
+            </div>
+          </div>
+
+          <div v-if="activeTab === 'applications'" class="space-y-6">
+            <h2 class="text-xl font-bold text-foreground">求职人员管理</h2>
+
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-border">
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">ID</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">姓名</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">手机号</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">邮箱</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">申请职位</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">状态</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="app in applicationsList" :key="app.id" class="border-b border-border/50 hover:bg-muted/30">
+                    <td class="py-3 px-4">{{ app.id }}</td>
+                    <td class="py-3 px-4 font-medium">{{ app.name }}</td>
+                    <td class="py-3 px-4">{{ app.phone }}</td>
+                    <td class="py-3 px-4">{{ app.email }}</td>
+                    <td class="py-3 px-4">
+                      <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium">岗位ID: {{ app.jobId || '-' }}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span :class="[
+                        'px-2 py-1 rounded-full text-xs font-medium',
+                        app.status === 0 ? 'bg-yellow-100 text-yellow-700' : 
+                        app.status === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      ]">
+                        {{ app.status === 0 ? '待审核' : app.status === 1 ? '已通过' : '已拒绝' }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4">
+                      <div class="flex gap-2">
+                        <button
+                          @click="viewApplicationDetail(app)"
+                          class="px-3 py-1 text-sm rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 transition-colors"
+                        >
+                          详情
+                        </button>
+                        <button
+                          v-if="app.status === 0"
+                          @click="handleApproveApplication(app.id)"
+                          class="px-3 py-1 text-sm rounded-lg bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
+                        >
+                          同意
+                        </button>
+                        <button
+                          v-if="app.status === 0"
+                          @click="handleRejectApplication(app.id)"
+                          class="px-3 py-1 text-sm rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors"
+                        >
+                          拒绝
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div v-if="applicationsList.length === 0 && !loading" class="text-center py-12 text-muted-foreground">
+                暂无求职申请
+              </div>
+            </div>
+          </div>
+
+          <div v-if="showApplicationDetailModal && viewingApplication" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div class="bg-card rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div class="p-6 border-b border-border flex items-center justify-between sticky top-0 bg-card z-10">
+                <h3 class="text-xl font-bold text-foreground">求职申请详情</h3>
+                <button @click="closeApplicationDetail" class="text-muted-foreground hover:text-foreground transition-colors">
+                  ✕
+                </button>
+              </div>
+
+              <div class="p-6 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="space-y-2">
+                    <label class="text-sm text-muted-foreground">申请ID</label>
+                    <div class="font-medium text-foreground">{{ viewingApplication.id }}</div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-sm text-muted-foreground">姓名</label>
+                    <div class="font-medium text-foreground">{{ viewingApplication.name }}</div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-sm text-muted-foreground">手机号</label>
+                    <div class="font-medium text-foreground">{{ viewingApplication.phone }}</div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-sm text-muted-foreground">邮箱</label>
+                    <div class="font-medium text-foreground">{{ viewingApplication.email }}</div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-sm text-muted-foreground">年龄</label>
+                    <div class="font-medium text-foreground">{{ viewingApplication.age || '-' }} 岁</div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-sm text-muted-foreground">可工作时间</label>
+                    <div class="font-medium text-foreground">{{ viewingApplication.availability || '-' }}</div>
+                  </div>
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-sm text-muted-foreground">居住地址</label>
+                  <div class="font-medium text-foreground bg-muted/30 p-3 rounded-lg">{{ viewingApplication.address || '未填写' }}</div>
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-sm text-muted-foreground">工作经验/简历</label>
+                  <div class="font-medium text-foreground bg-muted/30 p-4 rounded-lg whitespace-pre-wrap">{{ viewingApplication.resume || '未填写' }}</div>
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-sm text-muted-foreground">自我介绍/申请理由</label>
+                  <div class="font-medium text-foreground bg-muted/30 p-4 rounded-lg whitespace-pre-wrap">{{ viewingApplication.introduction || '未填写' }}</div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="space-y-2">
+                    <label class="text-sm text-muted-foreground">申请状态</label>
+                    <span :class="[
+                      'inline-block px-3 py-1 rounded-full text-sm font-medium',
+                      viewingApplication.status === 0 ? 'bg-yellow-100 text-yellow-700' : 
+                      viewingApplication.status === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    ]">
+                      {{ viewingApplication.status === 0 ? '待审核' : viewingApplication.status === 1 ? '已通过' : '已拒绝' }}
+                    </span>
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-sm text-muted-foreground">申请时间</label>
+                    <div class="font-medium text-foreground">{{ formatDate(viewingApplication.createTime) }}</div>
+                  </div>
+                </div>
+
+                <div v-if="viewingApplication.reviewNote" class="space-y-2">
+                  <label class="text-sm text-muted-foreground">审核备注</label>
+                  <div class="font-medium text-foreground bg-muted/30 p-3 rounded-lg">{{ viewingApplication.reviewNote }}</div>
+                </div>
+              </div>
+
+              <div class="p-6 border-t border-border flex justify-end gap-3">
+                <button
+                  v-if="viewingApplication.status === 0"
+                  @click="handleApproveFromDetail()"
+                  class="px-6 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors"
+                >
+                  同意申请
+                </button>
+                <button
+                  v-if="viewingApplication.status === 0"
+                  @click="handleRejectFromDetail()"
+                  class="px-6 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
+                >
+                  拒绝申请
+                </button>
+                <button
+                  @click="closeApplicationDetail"
+                  class="px-6 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="activeTab === 'employees'" class="space-y-6">
+            <div class="flex justify-between items-center">
+              <h2 class="text-xl font-bold text-foreground">管理员工</h2>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-border">
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">ID</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">姓名</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">手机号</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">邮箱</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">职位</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">部门</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">入职日期</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">状态</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="emp in employeesList" :key="emp.id" class="border-b border-border/50 hover:bg-muted/30">
+                    <td class="py-3 px-4">{{ emp.id }}</td>
+                    <td class="py-3 px-4 font-medium">{{ emp.name }}</td>
+                    <td class="py-3 px-4">{{ emp.phone }}</td>
+                    <td class="py-3 px-4">{{ emp.email }}</td>
+                    <td class="py-3 px-4">
+                      <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium">{{ emp.position || '-' }}</span>
+                    </td>
+                    <td class="py-3 px-4 text-muted-foreground">{{ emp.department || '-' }}</td>
+                    <td class="py-3 px-4 text-muted-foreground text-sm">
+                      {{ formatDate(emp.hireDate) }}
+                    </td>
+                    <td class="py-3 px-4">
+                      <span :class="[
+                        'px-2 py-1 rounded-full text-xs font-medium',
+                        emp.status === 1 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                      ]">
+                        {{ emp.status === 1 ? '在职' : '离职' }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4">
+                      <div class="flex gap-2">
+                        <button
+                          @click="openEditEmployee(emp)"
+                          class="px-3 py-1 text-sm rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
+                        >
+                          编辑
+                        </button>
+                        <button
+                          @click="toggleEmployeeStatus(emp)"
+                          :class="[
+                            'px-3 py-1 text-sm rounded-lg transition-colors',
+                            emp.status === 1 ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700' : 'bg-green-100 hover:bg-green-200 text-green-700'
+                          ]"
+                        >
+                          {{ emp.status === 1 ? '离职' : '复职' }}
+                        </button>
+                        <button
+                          @click="deleteEmployeeConfirm(emp)"
+                          class="px-3 py-1 text-sm rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div v-if="employeesList.length === 0 && !loading" class="text-center py-12 text-muted-foreground">
+                暂无员工
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -1366,6 +1924,183 @@ onMounted(() => {
           </button>
           <button
             @click="saveTips"
+            :disabled="saving"
+            class="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showJobModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-card rounded-2xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <h3 class="text-xl font-bold text-foreground mb-4">
+          {{ editingJob ? '编辑岗位' : '新增岗位' }}
+        </h3>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-foreground font-medium mb-2">岗位名称 *</label>
+              <input
+                type="text"
+                v-model="jobForm.title"
+                class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="如：兽医、领养协调员"
+              />
+            </div>
+            <div>
+              <label class="block text-foreground font-medium mb-2">类型 *</label>
+              <select
+                v-model="jobForm.type"
+                class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="">请选择类型</option>
+                <option v-for="t in jobTypes" :key="t" :value="t">{{ t }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-foreground font-medium mb-2">工作地点</label>
+            <input
+              type="text"
+              v-model="jobForm.location"
+              class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              placeholder="如：城市收容所总部、远程办公"
+            />
+          </div>
+
+          <div>
+            <label class="block text-foreground font-medium mb-2">岗位描述</label>
+            <textarea
+              v-model="jobForm.description"
+              rows="3"
+              class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              placeholder="请描述该岗位的主要职责..."
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="block text-foreground font-medium mb-2">任职要求</label>
+            <textarea
+              v-model="jobForm.requirement"
+              rows="3"
+              class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              placeholder="请描述该岗位的任职要求..."
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="block text-foreground font-medium mb-2">状态</label>
+            <select
+              v-model="jobForm.status"
+              class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option :value="1">招聘中</option>
+              <option :value="0">已关闭</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            @click="showJobModal = false"
+            class="px-4 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
+          >
+            取消
+          </button>
+          <button
+            @click="saveJob"
+            :disabled="saving"
+            class="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showEmployeeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-card rounded-2xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <h3 class="text-xl font-bold text-foreground mb-4">
+          编辑员工
+        </h3>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-foreground font-medium mb-2">姓名 *</label>
+              <input
+                type="text"
+                v-model="employeeForm.name"
+                class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="请输入姓名"
+              />
+            </div>
+            <div>
+              <label class="block text-foreground font-medium mb-2">手机号 *</label>
+              <input
+                type="text"
+                v-model="employeeForm.phone"
+                class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="请输入手机号"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-foreground font-medium mb-2">邮箱 *</label>
+              <input
+                type="email"
+                v-model="employeeForm.email"
+                class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="请输入邮箱"
+              />
+            </div>
+            <div>
+              <label class="block text-foreground font-medium mb-2">职位</label>
+              <input
+                type="text"
+                v-model="employeeForm.position"
+                class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="如：兽医、领养协调员"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-foreground font-medium mb-2">部门</label>
+              <input
+                type="text"
+                v-model="employeeForm.department"
+                class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="如：医疗部、运营部"
+              />
+            </div>
+            <div>
+              <label class="block text-foreground font-medium mb-2">状态</label>
+              <select
+                v-model="employeeForm.status"
+                class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option :value="1">在职</option>
+                <option :value="0">离职</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            @click="showEmployeeModal = false"
+            class="px-4 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
+          >
+            取消
+          </button>
+          <button
+            @click="saveEmployee"
             :disabled="saving"
             class="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
           >

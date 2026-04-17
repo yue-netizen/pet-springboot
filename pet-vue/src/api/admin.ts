@@ -150,3 +150,102 @@ export function getPostById(id: number) {
 export function deletePost(id: number) {
   return request.delete(`/admin/post/${id}`)
 }
+
+export interface Job {
+  id?: number
+  title: string
+  type: string
+  location: string
+  description: string
+  requirement: string
+  salaryMin?: number
+  salaryMax?: number
+  status: number
+}
+
+export function getJobList(page: number = 1, size: number = 100) {
+  return request.get<any, { data: { records: Job[], total: number } }>(`/admin/job/list?page=${page}&size=${size}`)
+}
+
+export function getJobById(id: number) {
+  return request.get<any, { data: Job }>(`/admin/job/${id}`)
+}
+
+export function addJob(job: Job) {
+  return request.post('/admin/job', job)
+}
+
+export function updateJob(job: Job) {
+  return request.put('/admin/job', job)
+}
+
+export function deleteJob(id: number) {
+  return request.delete(`/admin/job/${id}`)
+}
+
+export interface JobApplication {
+  id?: number
+  jobId?: number
+  userId?: number
+  name: string
+  phone: string
+  email: string
+  age?: number
+  address?: string
+  resume?: string
+  introduction?: string
+  availability?: string
+  status: number
+  createTime?: string
+}
+
+export function getApplicationList(page: number = 1, size: number = 100) {
+  return request.get<any, { data: { records: JobApplication[], total: number } }>(`/admin/employee/applications?page=${page}&size=${size}`)
+}
+
+export interface Employee {
+  id?: number
+  userId?: number
+  jobId?: number
+  name: string
+  phone: string
+  email: string
+  age?: number
+  address?: string
+  resume?: string
+  introduction?: string
+  availability?: string
+  position?: string
+  department?: string
+  hireDate?: string
+  status: number
+}
+
+export function getEmployeeList(page: number = 1, size: number = 100) {
+  return request.get<any, { data: { records: Employee[], total: number } }>(`/admin/employee/list?page=${page}&size=${size}`)
+}
+
+export function getEmployeeById(id: number) {
+  return request.get<any, { data: Employee }>(`/admin/employee/${id}`)
+}
+
+export function approveApplication(applicationId: number) {
+  return request.put(`/admin/employee/approve/${applicationId}`)
+}
+
+export function rejectApplication(applicationId: number) {
+  return request.put(`/admin/employee/reject/${applicationId}`)
+}
+
+export function updateEmployee(employee: Employee) {
+  return request.put('/admin/employee', employee)
+}
+
+export function updateEmployeeStatus(id: number, status: number) {
+  return request.put(`/admin/employee/status/${id}?status=${status}`)
+}
+
+export function deleteEmployee(id: number) {
+  return request.delete(`/admin/employee/${id}`)
+}
+
