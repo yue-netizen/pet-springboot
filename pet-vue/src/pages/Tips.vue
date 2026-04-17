@@ -3,6 +3,7 @@ import { BookOpen, ChevronRight } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getTipsList, type PetTips } from '@/api/tips'
+import PetAiAssistant from '@/components/PetAiAssistant.vue'
 
 const router = useRouter()
 const tipsList = ref<PetTips[]>([])
@@ -79,5 +80,7 @@ onMounted(() => {
       <BookOpen :size="48" class="mx-auto mb-4 opacity-50" />
       <p>暂无养宠贴士</p>
     </div>
+
+    <PetAiAssistant />
   </div>
 </template>

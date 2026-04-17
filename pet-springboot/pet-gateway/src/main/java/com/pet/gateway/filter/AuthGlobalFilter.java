@@ -48,7 +48,8 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             "/topic/search",
             "/post/list",
             "/post/search",
-            "/post/"
+            "/post/",
+            "/tips-ai/ask"
     );
 
     @Override

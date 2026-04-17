@@ -15,8 +15,11 @@ public class JobApplication extends BaseEntity {
     private String name;
     private String phone;
     private String email;
+    private Integer age;
+    private String address;
     private String resume;
     private String introduction;
+    private String availability;
     private Integer status;
     private String reviewNote;
 }

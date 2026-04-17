@@ -39,6 +39,14 @@ spring:
     port: 5672
     username: guest
     password: guest
+  ai:
+    openai:
+      api-key: ${DASHSCOPE_API_KEY}
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      chat:
+        options:
+          model: qwen-max-latest
+          temperature: 0.7
 
 seata:
   enabled: false

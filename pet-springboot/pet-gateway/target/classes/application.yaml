@@ -75,7 +75,7 @@ spring:
         - id: pet-tips
           uri: lb://pet-tips
           predicates:
-            - Path=/api/tips/**
+            - Path=/api/tips/**,/api/tips-ai/**
           filters:
             - StripPrefix=1
   data:

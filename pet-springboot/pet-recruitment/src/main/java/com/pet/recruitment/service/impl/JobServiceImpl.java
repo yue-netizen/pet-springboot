@@ -114,13 +114,20 @@ public class JobServiceImpl extends ServiceImpl<JobMapper, Job> implements JobSe
         application.setName(applicationVO.getName());
         application.setPhone(applicationVO.getPhone());
         application.setEmail(applicationVO.getEmail());
+        application.setAge(applicationVO.getAge());
+        application.setAddress(applicationVO.getAddress());
         application.setResume(applicationVO.getResume());
         application.setIntroduction(applicationVO.getIntroduction());
+        application.setAvailability(applicationVO.getAvailability());
         application.setStatus(0);
         
         jobApplicationMapper.insert(application);
         
-        rabbitTemplate.convertAndSend("recruitment.exchange", "job.applied", application);
+        try {
+            rabbitTemplate.convertAndSend("recruitment.exchange", "job.applied", application);
+        } catch (Exception e) {
+            log.warn("发送申请通知消息失败: {}", e.getMessage());
+        }
         
         return Result.success();
     }

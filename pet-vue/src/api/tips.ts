@@ -39,3 +39,16 @@ export function updateTips(id: number, tips: Omit<PetTips, 'id' | 'createTime' |
 export function deleteTips(id: number) {
   return request.delete(`/tips/${id}`)
 }
+
+export interface TipsAiRequest {
+  breed: string
+  question: string
+}
+
+export interface TipsAiResponse {
+  answer: string
+}
+
+export function askTipsAi(data: TipsAiRequest) {
+  return request.post<any, { data: TipsAiResponse }>('/tips-ai/ask', data)
+}

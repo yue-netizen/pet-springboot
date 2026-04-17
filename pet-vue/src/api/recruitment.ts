@@ -40,8 +40,11 @@ export interface JobApplyParams {
   name: string
   phone: string
   email: string
-  resume?: string
-  introduction?: string
+  age: number
+  address: string
+  resume: string
+  introduction: string
+  availability: string
 }
 
 export function getJobList(params: JobQuery) {

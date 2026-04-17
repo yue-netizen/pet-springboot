@@ -68,6 +68,61 @@ const openAdoptionModal = () => {
 }
 
 const submitAdoption = async () => {
+  const form = adoptionForm.value
+
+  if (!form.name || !form.name.trim()) {
+    alert('请填写您的姓名')
+    return
+  }
+  if (!form.phone || !form.phone.trim()) {
+    alert('请填写您的联系电话')
+    return
+  }
+  if (!form.email || !form.email.trim()) {
+    alert('请填写您的邮箱地址')
+    return
+  }
+  if (!form.applicantAge || form.applicantAge <= 0) {
+    alert('请填写您的年龄')
+    return
+  }
+  if (!form.address || !form.address.trim()) {
+    alert('请填写您的居住地址')
+    return
+  }
+  if (!form.housingType) {
+    alert('请选择居住类型')
+    return
+  }
+  if (!form.hasPetExperience) {
+    alert('请选择是否有养宠物经验')
+    return
+  }
+  if (!form.familyStatus || !form.familyStatus.trim()) {
+    alert('请填写家庭成员情况')
+    return
+  }
+  if (!form.reason || !form.reason.trim()) {
+    alert('请填写领养原因')
+    return
+  }
+  if (!form.agreeHealthCheck) {
+    alert('请勾选：定期带宠物去做健康检查和接种疫苗')
+    return
+  }
+  if (!form.agreeNeuter) {
+    alert('请勾选：适龄宠物进行绝育手术')
+    return
+  }
+  if (!form.agreeGoodEnvironment) {
+    alert('请勾选：提供良好的生活环境，不虐待、不遗弃')
+    return
+  }
+  if (!form.agreeTimelyMedical) {
+    alert('请勾选：在宠物生病时及时就医')
+    return
+  }
+
   try {
     submitting.value = true
     await applyAdoption(adoptionForm.value)
