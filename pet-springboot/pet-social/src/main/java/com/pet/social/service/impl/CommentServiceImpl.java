@@ -3,7 +3,9 @@ package com.pet.social.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.pet.common.dto.UserDTO;
 import com.pet.common.exception.BusinessException;
+import com.pet.common.feign.UserFeignClient;
 import com.pet.common.result.Result;
 import com.pet.social.entity.Comment;
 import com.pet.social.entity.Post;
@@ -16,12 +18,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
 
     private final PostMapper postMapper;
+    private final UserFeignClient userFeignClient;
 
     @Override
     public Result<Page<Comment>> getCommentsByPostId(Long postId, Integer page, Integer size) {
@@ -33,7 +38,29 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         Page<Comment> commentPage = new Page<>(page, size);
         Page<Comment> result = this.page(commentPage, wrapper);
         
+        fillUserInfo(result.getRecords());
+        
         return Result.success(result);
+    }
+
+    private void fillUserInfo(List<Comment> comments) {
+        if (comments == null || comments.isEmpty()) return;
+
+        for (Comment comment : comments) {
+            try {
+                Result<UserDTO> result = userFeignClient.getUserById(comment.getUserId());
+                if (result != null && result.getData() != null) {
+                    UserDTO user = result.getData();
+                    comment.setUserNickname(user.getNickname() != null ? user.getNickname() : "用户" + comment.getUserId());
+                    comment.setUserAvatar(user.getAvatar());
+                } else {
+                    comment.setUserNickname("用户" + comment.getUserId());
+                }
+            } catch (Exception e) {
+                log.error("获取评论用户信息失败, userId: {}", comment.getUserId(), e);
+                comment.setUserNickname("用户" + comment.getUserId());
+            }
+        }
     }
 
     @Override

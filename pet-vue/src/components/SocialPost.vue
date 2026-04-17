@@ -411,12 +411,13 @@ onMounted(() => {
       
       <div v-else class="space-y-4">
         <div v-for="comment in currentPageComments" :key="comment.id" class="flex gap-3">
-          <div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-muted-foreground flex-shrink-0">
-            <User :size="20" />
+          <div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-muted-foreground flex-shrink-0 overflow-hidden">
+            <img v-if="comment.userAvatar" :src="comment.userAvatar" alt="用户头像" class="w-full h-full object-cover" />
+            <User v-else :size="20" />
           </div>
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
-              <span class="font-semibold text-foreground">用户{{ comment.userId }}</span>
+              <span class="font-semibold text-foreground">{{ comment.userNickname || '用户' + comment.userId }}</span>
               <span class="text-xs text-muted-foreground">{{ formatTime(comment.createTime) }}</span>
             </div>
             <p class="text-foreground">{{ comment.content }}</p>

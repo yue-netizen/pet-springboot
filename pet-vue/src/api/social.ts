@@ -33,6 +33,8 @@ export interface Comment {
   content: string
   likeCount: number
   createTime: string
+  userNickname?: string
+  userAvatar?: string
 }
 
 export interface PostCreate {

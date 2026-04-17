@@ -1,5 +1,6 @@
 package com.pet.social.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.pet.common.entity.BaseEntity;
 import lombok.Data;
@@ -16,4 +17,10 @@ public class Comment extends BaseEntity {
     private String content;
     private Integer likeCount;
     private Integer status;
+
+    @TableField(exist = false)
+    private String userNickname;
+
+    @TableField(exist = false)
+    private String userAvatar;
 }
