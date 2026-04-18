@@ -98,15 +98,19 @@ onMounted(() => {
 
           <div class="flex items-center justify-between mt-auto">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-muted rounded-full overflow-hidden">
+              <div class="w-12 h-12 bg-muted rounded-full overflow-hidden shrink-0">
                 <img 
-                  :src="story.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'" 
+                  v-if="story.userAvatar"
+                  :src="story.userAvatar" 
                   :alt="story.username || '用户'" 
                   class="w-full h-full object-cover" 
                 />
+                <div v-else class="w-full h-full flex items-center justify-center text-muted-foreground text-lg font-bold">
+                  {{ (story.username || '用').charAt(0) }}
+                </div>
               </div>
               <div>
-                <div class="font-bold text-foreground">{{ story.username || '匿名用户' }}</div>
+                <div class="font-bold text-foreground">{{ story.username || '用户' + story.userId }}</div>
                 <div class="text-sm text-muted-foreground">{{ formatDate(story.createTime) }}</div>
               </div>
             </div>

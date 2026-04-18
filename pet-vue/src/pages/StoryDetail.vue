@@ -141,15 +141,19 @@ onMounted(() => {
             <h1 class="text-3xl md:text-5xl font-bold mb-4">{{ story.title }}</h1>
             <div class="flex items-center gap-4">
               <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-white/20 rounded-full overflow-hidden backdrop-blur">
+                <div class="w-12 h-12 bg-white/20 rounded-full overflow-hidden backdrop-blur shrink-0">
                   <img 
-                    :src="story.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'" 
+                    v-if="story.userAvatar"
+                    :src="story.userAvatar" 
                     :alt="story.username || '用户'"
                     class="w-full h-full object-cover"
                   />
+                  <div v-else class="w-full h-full flex items-center justify-center text-white/80 text-lg font-bold">
+                    {{ (story.username || '用').charAt(0) }}
+                  </div>
                 </div>
                 <div>
-                  <div class="font-bold">{{ story.username || '匿名用户' }}</div>
+                  <div class="font-bold">{{ story.username || '用户' + story.userId }}</div>
                   <div class="text-sm opacity-80">{{ formatDate(story.createTime) }}</div>
                 </div>
               </div>
@@ -206,11 +210,15 @@ onMounted(() => {
         <div v-if="userStore.isLoggedIn()" class="mb-8">
           <div class="flex gap-4">
             <div class="w-10 h-10 bg-muted rounded-full overflow-hidden flex-shrink-0">
-              <img 
-                :src="userStore.user?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" 
+              <img
+                v-if="userStore.userInfo?.avatar"
+                :src="userStore.userInfo.avatar"
                 alt="头像"
                 class="w-full h-full object-cover"
               />
+              <div v-else class="w-full h-full flex items-center justify-center text-muted-foreground text-sm font-bold">
+                {{ (userStore.userInfo?.nickname || userStore.userInfo?.username || '用').charAt(0) }}
+              </div>
             </div>
             <div class="flex-1">
               <textarea
@@ -248,19 +256,23 @@ onMounted(() => {
         <div v-else class="space-y-6">
           <div v-for="comment in comments" :key="comment.id" class="flex gap-4">
             <div class="w-10 h-10 bg-muted rounded-full overflow-hidden flex-shrink-0">
-              <img 
-                :src="comment.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" 
+              <img
+                v-if="comment.userAvatar"
+                :src="comment.userAvatar"
                 :alt="comment.username || '用户'"
                 class="w-full h-full object-cover"
               />
+              <div v-else class="w-full h-full flex items-center justify-center text-muted-foreground text-sm font-bold">
+                {{ (comment.username || '用').charAt(0) }}
+              </div>
             </div>
             <div class="flex-1">
               <div class="flex items-center justify-between mb-1">
-                <span class="font-medium text-foreground">{{ comment.username || '匿名用户' }}</span>
+                <span class="font-medium text-foreground">{{ comment.username || '用户' + comment.userId }}</span>
                 <div class="flex items-center gap-3">
                   <span class="text-sm text-muted-foreground">{{ formatDate(comment.createTime) }}</span>
                   <button
-                    v-if="userStore.isLoggedIn() && userStore.user?.id === comment.userId"
+                    v-if="userStore.isLoggedIn() && userStore.userInfo?.id === comment.userId"
                     @click="handleDeleteComment(comment.id)"
                     class="text-muted-foreground hover:text-red-500 transition-colors"
                   >

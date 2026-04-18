@@ -120,7 +120,7 @@ public class StoryCommentServiceImpl extends ServiceImpl<StoryCommentMapper, Sto
         }
 
         String placeholders = userIds.stream().map(id -> "?").collect(Collectors.joining(","));
-        String sql = "SELECT id, username, nickname, avatar FROM sys_user WHERE id IN (" + placeholders + ")";
+        String sql = "SELECT id, username, nickname, avatar FROM sys_user WHERE id IN (" + placeholders + ") AND deleted = 0";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -132,20 +132,28 @@ public class StoryCommentServiceImpl extends ServiceImpl<StoryCommentMapper, Sto
             try (ResultSet rs = ps.executeQuery()) {
                 List<Map<String, Object>> list = new ArrayList<>();
                 while (rs.next()) {
+                    Long uid = rs.getLong("id");
                     String nickname = rs.getString("nickname");
                     String username = rs.getString("username");
-                    String displayName = nickname != null && !nickname.isEmpty() ? nickname : username;
+                    String avatar = rs.getString("avatar");
+
+                    String displayName = "用户" + uid;
+                    if (nickname != null && !nickname.isBlank()) {
+                        displayName = nickname;
+                    } else if (username != null && !username.isBlank()) {
+                        displayName = username;
+                    }
 
                     list.add(Map.of(
-                            "id", rs.getLong("id"),
+                            "id", uid,
                             "nickname", displayName,
-                            "avatar", rs.getString("avatar")
+                            "avatar", avatar != null ? avatar : ""
                     ));
                 }
                 return list.stream().collect(Collectors.toMap(m -> (Long) m.get("id"), m -> m));
             }
         } catch (Exception e) {
-            log.error("查询用户信息失败", e);
+            log.error("查询评论用户信息失败", e);
             return Map.of();
         }
     }

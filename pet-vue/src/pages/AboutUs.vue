@@ -134,8 +134,8 @@ onMounted(() => {
             加载中...
           </div>
           <div v-else class="space-y-6">
-            <div class="w-full h-[250px] rounded-2xl overflow-hidden bg-muted">
-              <img v-if="getConfigValue('about_contact_image')" :src="getConfigValue('about_contact_image')" alt="联系我们" class="w-full h-full object-cover" />
+            <div class="w-full rounded-2xl overflow-hidden bg-muted">
+              <img v-if="getConfigValue('about_contact_image')" :src="getConfigValue('about_contact_image')" alt="联系我们" class="w-full h-auto object-contain" />
             </div>
             <div class="bg-muted p-6 rounded-2xl border border-border">
               <div v-for="(line, index) in contactLines" :key="index" class="text-muted-foreground py-1">

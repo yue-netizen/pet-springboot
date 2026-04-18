@@ -39,7 +39,7 @@ spring:
         - id: pet-pet
           uri: lb://pet-pet
           predicates:
-            - Path=/api/pet/**,/api/adoption/**
+            - Path=/api/pet/**,/api/adoption/**,/api/favorite/**
           filters:
             - StripPrefix=1
         - id: pet-social

@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { getAllUsers, updateUserByAdmin, deleteUser, updateUserStatus, getConfigList, updateConfig, uploadImage, type SysConfig, type UserDTO, getPetList, getPetById, addPet, updatePet, deletePet, type Pet, getAdoptionList, getAdoptionDetail, reviewAdoption, updateAdoption, type AdoptionDetail, getPostList, getPostById, deletePost, type Post, getJobList, addJob as adminAddJob, updateJob as adminUpdateJob, deleteJob as adminDeleteJob, type Job, getApplicationList, type JobApplication, getEmployeeList, approveApplication as adminApproveApplication, rejectApplication as adminRejectApplication, updateEmployee as adminUpdateEmployee, updateEmployeeStatus as adminUpdateEmployeeStatus, deleteEmployee as adminDeleteEmployee, type Employee } from '@/api/admin'
+import { getAllUsers, updateUserByAdmin, deleteUser, updateUserStatus, getConfigList, updateConfig, uploadImage, type SysConfig, type UserDTO, getPetList, getPetById, addPet, updatePet, deletePet, type Pet, getAdoptionList, getAdoptionDetail, reviewAdoption, updateAdoption, type AdoptionDetail, getPostList, getPostById, deletePost, type Post, getJobList, addJob as adminAddJob, updateJob as adminUpdateJob, deleteJob as adminDeleteJob, type Job, getApplicationList, type JobApplication, getEmployeeList, approveApplication as adminApproveApplication, rejectApplication as adminRejectApplication, updateEmployee as adminUpdateEmployee, updateEmployeeStatus as adminUpdateEmployeeStatus, deleteEmployee as adminDeleteEmployee, type Employee, getStoryList, getStoryById, addStory, updateStory, deleteStory, type Story } from '@/api/admin'
 import { getTipsList, getTipsById, createTips, updateTips, deleteTips, type PetTips } from '@/api/tips'
 
 const router = useRouter()
@@ -25,6 +25,7 @@ const tabs = [
   { key: 'jobs', label: '岗位管理' },
   { key: 'applications', label: '求职人员' },
   { key: 'employees', label: '管理员工' },
+  { key: 'stories', label: '故事管理' },
   { key: 'about', label: '关于我们' },
   { key: 'rules', label: '领养规则' },
   { key: 'tips', label: '养宠贴士' }
@@ -117,6 +118,20 @@ const employeeForm = ref<Employee>({
 const showApplicationDetailModal = ref(false)
 const viewingApplication = ref<JobApplication | null>(null)
 
+const storiesList = ref<Story[]>([])
+const showStoryModal = ref(false)
+const editingStory = ref<Story | null>(null)
+const storyForm = ref<Story>({
+  title: '',
+  content: '',
+  image: '',
+  status: 1,
+  petId: undefined,
+  userId: undefined
+})
+
+const adoptedPets = computed(() => petsList.value.filter(p => p.status === 2))
+
 const configMap = computed(() => {
   const map: Record<string, string> = {}
   configs.value.forEach(c => {
@@ -160,6 +175,7 @@ async function loadData() {
     await loadJobs()
     await loadApplications()
     await loadEmployees()
+    await loadStories()
   } catch (e) {
     console.error('加载数据失败', e)
   } finally {
@@ -234,6 +250,16 @@ async function loadEmployees() {
   } catch (e) {
     console.error('加载员工失败', e)
     employeesList.value = []
+  }
+}
+
+async function loadStories() {
+  try {
+    const res = await getStoryList(1, 100)
+    storiesList.value = res.data?.records || []
+  } catch (e) {
+    console.error('加载故事失败', e)
+    storiesList.value = []
   }
 }
 
@@ -330,6 +356,91 @@ async function deleteEmployeeConfirm(employee: Employee) {
   try {
     await adminDeleteEmployee(employee.id!)
     await loadEmployees()
+    alert('删除成功！')
+  } catch (e) {
+    console.error('删除失败', e)
+    alert('删除失败，请重试')
+  }
+}
+
+function getPetName(petId?: number) {
+  if (!petId) return ''
+  const pet = petsList.value.find(p => p.id === petId)
+  return pet ? `${pet.name} (${pet.breed})` : ''
+}
+
+function openAddStory() {
+  editingStory.value = null
+  storyForm.value = { title: '', content: '', image: '', status: 1, petId: undefined, userId: undefined }
+  showStoryModal.value = true
+}
+
+function openEditStory(story: Story) {
+  editingStory.value = story
+  storyForm.value = { ...story }
+  showStoryModal.value = true
+}
+
+async function handleStoryImageUpload(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (!target.files || target.files.length === 0) return
+
+  const file = target.files[0]
+  uploadingImage.value = true
+
+  try {
+    const res = await uploadImage(file)
+    storyForm.value.image = res.data
+    alert('图片上传成功！')
+  } catch (e) {
+    console.error('图片上传失败', e)
+    alert('图片上传失败，请重试')
+  } finally {
+    uploadingImage.value = false
+    target.value = ''
+  }
+}
+
+async function handleSaveStory() {
+  if (!storyForm.value.title.trim() || !storyForm.value.content.trim()) {
+    alert('请填写标题和内容')
+    return
+  }
+  if (!storyForm.value.userId) {
+    alert('请选择领养用户')
+    return
+  }
+  if (!storyForm.value.petId) {
+    alert('请选择关联宠物')
+    return
+  }
+  if (!storyForm.value.image.trim()) {
+    alert('请上传故事图片')
+    return
+  }
+  saving.value = true
+  try {
+    if (editingStory.value?.id) {
+      await updateStory(storyForm.value)
+    } else {
+      await addStory(storyForm.value)
+    }
+    showStoryModal.value = false
+    await loadStories()
+    alert(editingStory.value ? '更新成功！' : '添加成功！')
+  } catch (e) {
+    console.error('保存故事失败', e)
+    alert('保存失败，请重试')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function deleteStoryConfirm(story: Story) {
+  if (!confirm(`确定要删除故事 "${story.title}" 吗？`)) return
+  try {
+    await deleteStory(story.id!)
+    await loadStories()
     alert('删除成功！')
   } catch (e) {
     console.error('删除失败', e)
@@ -881,7 +992,7 @@ onMounted(() => {
                   上传中...
                 </div>
                 <div v-if="getConfigValue('about_intro_image')" class="mt-4">
-                  <img :src="getConfigValue('about_intro_image')" alt="预览" class="w-full h-48 object-cover rounded-xl" />
+                  <img :src="getConfigValue('about_intro_image')" alt="预览" class="w-full h-auto object-contain rounded-xl" />
                 </div>
               </div>
               <div class="flex justify-end">
@@ -1048,7 +1159,7 @@ onMounted(() => {
                   上传中...
                 </div>
                 <div v-if="getConfigValue('about_contact_image')" class="mt-4">
-                  <img :src="getConfigValue('about_contact_image')" alt="预览" class="w-full h-48 object-cover rounded-xl" />
+                  <img :src="getConfigValue('about_contact_image')" alt="预览" class="w-full h-auto object-contain rounded-xl" />
                 </div>
               </div>
               <div class="flex justify-end">
@@ -1798,6 +1909,79 @@ onMounted(() => {
             </div>
           </div>
 
+          <div v-if="activeTab === 'stories'" class="space-y-6">
+            <div class="flex justify-between items-center">
+              <h2 class="text-xl font-bold text-foreground">故事管理</h2>
+              <button
+                @click="openAddStory"
+                class="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
+              >
+                + 新增故事
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-border">
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">ID</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">图片</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">标题</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">关联宠物</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">内容</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">点赞数</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">浏览量</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">状态</th>
+                    <th class="text-left py-3 px-4 text-muted-foreground font-medium">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="story in storiesList" :key="story.id" class="border-b border-border/50 hover:bg-muted/30">
+                    <td class="py-3 px-4">{{ story.id }}</td>
+                    <td class="py-3 px-4">
+                      <img v-if="story.image" :src="story.image" :alt="story.title" class="w-12 h-12 rounded-lg object-cover" />
+                      <span v-else class="text-muted-foreground">-</span>
+                    </td>
+                    <td class="py-3 px-4 font-medium max-w-[200px] truncate">{{ story.title }}</td>
+                    <td class="py-3 px-4">
+                      {{ getPetName(story.petId) || '-' }}
+                    </td>
+                    <td class="py-3 px-4 text-muted-foreground max-w-[300px] truncate">{{ story.content }}</td>
+                    <td class="py-3 px-4">{{ story.likeCount || 0 }}</td>
+                    <td class="py-3 px-4">{{ story.viewCount || 0 }}</td>
+                    <td class="py-3 px-4">
+                      <span :class="[
+                        'px-2 py-1 rounded-full text-xs font-medium',
+                        story.status === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      ]">{{ story.status === 1 ? '正常' : '禁用' }}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                      <div class="flex gap-2">
+                        <button
+                          @click="openEditStory(story)"
+                          class="px-3 py-1 text-sm rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
+                        >
+                          编辑
+                        </button>
+                        <button
+                          @click="deleteStoryConfirm(story)"
+                          class="px-3 py-1 text-sm rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div v-if="storiesList.length === 0 && !loading" class="text-center py-12 text-muted-foreground">
+                暂无故事
+              </div>
+            </div>
+          </div>
+
+
         </div>
       </div>
 
@@ -1924,6 +2108,109 @@ onMounted(() => {
           </button>
           <button
             @click="saveTips"
+            :disabled="saving"
+            class="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showStoryModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-card rounded-2xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <h3 class="text-xl font-bold text-foreground mb-4">
+          {{ editingStory?.id ? '编辑故事' : '新增故事' }}
+        </h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-foreground font-medium mb-2">标题 *</label>
+            <input
+              type="text"
+              v-model="storyForm.title"
+              class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              placeholder="请输入故事标题"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-foreground font-medium mb-2">领养用户 *</label>
+              <select
+                v-model="storyForm.userId"
+                class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option :value="undefined" disabled>请选择领养用户</option>
+                <option v-for="user in users" :key="user.id" :value="user.id">{{ user.nickname || user.username }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-foreground font-medium mb-2">关联宠物 *</label>
+              <select
+                v-model="storyForm.petId"
+                class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option :value="undefined" disabled>请选择已领养的宠物</option>
+                <option v-for="pet in adoptedPets" :key="pet.id" :value="pet.id">{{ pet.name }} ({{ pet.breed }})</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-foreground font-medium mb-2">内容 *</label>
+            <textarea
+              v-model="storyForm.content"
+              rows="5"
+              class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              placeholder="请输入故事内容"
+            ></textarea>
+          </div>
+          <div>
+            <label class="block text-foreground font-medium mb-2">图片 *</label>
+            <div class="flex flex-col md:flex-row gap-4 items-start">
+              <div class="w-full md:w-40 h-40 rounded-xl border border-dashed border-border bg-background flex items-center justify-center overflow-hidden">
+                <img v-if="storyForm.image" :src="storyForm.image" alt="预览" class="w-full h-full object-cover" />
+                <div v-else class="text-center text-muted-foreground">
+                  <div class="text-3xl mb-1">📷</div>
+                  <div class="text-sm">暂无图片</div>
+                </div>
+              </div>
+              <div class="flex-1">
+                <label class="inline-block px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium cursor-pointer hover:opacity-90 transition-opacity">
+                  点击上传图片
+                  <input
+                    type="file"
+                    accept="image/*"
+                    @change="handleStoryImageUpload"
+                    class="hidden"
+                    :disabled="uploadingImage"
+                  />
+                </label>
+                <div v-if="uploadingImage" class="mt-2 text-primary">
+                  上传中...
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="block text-foreground font-medium mb-2">状态</label>
+            <select
+              v-model="storyForm.status"
+              class="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option :value="1">正常</option>
+              <option :value="0">禁用</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            @click="showStoryModal = false"
+            class="px-4 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
+          >
+            取消
+          </button>
+          <button
+            @click="handleSaveStory"
             :disabled="saving"
             class="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
           >

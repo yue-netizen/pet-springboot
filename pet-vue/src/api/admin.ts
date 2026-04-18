@@ -249,3 +249,35 @@ export function deleteEmployee(id: number) {
   return request.delete(`/admin/employee/${id}`)
 }
 
+export interface Story {
+  id?: number
+  userId?: number
+  petId?: number
+  title: string
+  content: string
+  image: string
+  likeCount?: number
+  viewCount?: number
+  status?: number
+}
+
+export function getStoryList(page: number = 1, size: number = 100) {
+  return request.get<any, { data: { records: Story[], total: number } }>(`/admin/story/list?page=${page}&size=${size}`)
+}
+
+export function getStoryById(id: number) {
+  return request.get<any, { data: Story }>(`/admin/story/${id}`)
+}
+
+export function addStory(story: Story) {
+  return request.post('/admin/story', story)
+}
+
+export function updateStory(story: Story) {
+  return request.put('/admin/story', story)
+}
+
+export function deleteStory(id: number) {
+  return request.delete(`/admin/story/${id}`)
+}
+

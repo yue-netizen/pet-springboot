@@ -5,7 +5,7 @@ import { User, Heart, FileText, MapPin, LogOut, Image, MessageSquare, Trash2, Ey
 import { useUserStore } from '@/stores/user'
 import PetCard from '@/components/PetCard.vue'
 import SocialPost from '@/components/SocialPost.vue'
-import { getMyAdoptions, getMyAdoptionRecords, type AdoptionRecord, type Pet } from '@/api/pet'
+import { getMyAdoptions, getMyAdoptionRecords, type AdoptionRecord, type Pet, getMyFavorites } from '@/api/pet'
 import { getMyPosts, getMyLikedPosts, deletePost, type Post } from '@/api/social'
 import { getMyLikedStories, type StoryDetail } from '@/api/story'
 import { uploadImage } from '@/api/social'
@@ -28,6 +28,7 @@ const adoptionRecords = ref<AdoptionRecord[]>([])
 const myPosts = ref<Post[]>([])
 const likedPosts = ref<Post[]>([])
 const likedStories = ref<StoryDetail[]>([])
+const favoritePets = ref<Pet[]>([])
 const follows = ref<any[]>([])
 
 const likedActiveTab = ref('posts')
@@ -101,9 +102,12 @@ async function loadLikedData() {
     if (likedActiveTab.value === 'posts') {
       const res = await getMyLikedPosts(1, 100)
       likedPosts.value = res.data.records
-    } else {
+    } else if (likedActiveTab.value === 'stories') {
       const res = await getMyLikedStories(1, 100)
       likedStories.value = res.data.records
+    } else if (likedActiveTab.value === 'favorites') {
+      const res = await getMyFavorites(1, 100)
+      favoritePets.value = res.data.records
     }
   } catch (e) {
     console.error('加载喜欢内容失败', e)
@@ -398,19 +402,26 @@ async function handleSaveProfile() {
 
         <div v-else-if="activeTab === 'liked'">
           <div class="flex gap-4 mb-6">
-            <button 
+            <button
               @click="likedActiveTab = 'posts'; loadLikedData()"
-              :class="['px-4 py-2 rounded-full font-semibold transition-colors', 
+              :class="['px-4 py-2 rounded-full font-semibold transition-colors',
                 likedActiveTab === 'posts' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-border']"
             >
               点赞的帖子
             </button>
-            <button 
+            <button
               @click="likedActiveTab = 'stories'; loadLikedData()"
-              :class="['px-4 py-2 rounded-full font-semibold transition-colors', 
+              :class="['px-4 py-2 rounded-full font-semibold transition-colors',
                 likedActiveTab === 'stories' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-border']"
             >
               点赞的故事
+            </button>
+            <button
+              @click="likedActiveTab = 'favorites'; loadLikedData()"
+              :class="['px-4 py-2 rounded-full font-semibold transition-colors',
+                likedActiveTab === 'favorites' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-border']"
+            >
+              收藏的宠物
             </button>
           </div>
 
@@ -424,15 +435,15 @@ async function handleSaveProfile() {
               </RouterLink>
             </div>
             <div v-else class="space-y-4">
-              <SocialPost 
-                v-for="post in likedPosts" 
+              <SocialPost
+                v-for="post in likedPosts"
                 :key="post.id"
                 :post="post"
               />
             </div>
           </div>
 
-          <div v-else>
+          <div v-else-if="likedActiveTab === 'stories'">
             <div v-if="likedStories.length === 0" class="flex flex-col items-center justify-center p-10 text-muted-foreground text-center bg-background min-h-[300px] rounded-2xl">
               <Heart :size="48" class="mb-4 text-border" />
               <h3 class="text-xl font-bold text-foreground mb-2">还没有点赞的故事</h3>
@@ -442,16 +453,16 @@ async function handleSaveProfile() {
               </RouterLink>
             </div>
             <div v-else class="space-y-6">
-              <div 
-                v-for="story in likedStories" 
-                :key="story.id" 
+              <div
+                v-for="story in likedStories"
+                :key="story.id"
                 class="flex flex-col md:flex-row bg-card rounded-3xl overflow-hidden shadow-custom border border-border w-full cursor-pointer hover:shadow-lg transition-shadow"
                 @click="router.push(`/story/${story.id}`)"
               >
                 <div class="md:w-2/5 h-64 md:h-auto min-h-[200px] bg-muted relative">
-                  <img 
-                    :src="story.image || 'https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=600&q=80'" 
-                    :alt="story.title" 
+                  <img
+                    :src="story.image || 'https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=600&q=80'"
+                    :alt="story.title"
                     class="w-full h-full object-cover"
                   />
                 </div>
@@ -465,8 +476,8 @@ async function handleSaveProfile() {
                     {{ story.content }}
                   </p>
                   <div v-if="story.petName" class="flex items-center gap-3 mb-4 p-3 bg-muted rounded-xl">
-                    <img 
-                      :src="story.petImage || 'https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=100&q=80'" 
+                    <img
+                      :src="story.petImage || 'https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=100&q=80'"
                       :alt="story.petName"
                       class="w-10 h-10 rounded-full object-cover"
                     />
@@ -478,6 +489,39 @@ async function handleSaveProfile() {
                   <div class="flex items-center gap-4 text-sm text-muted-foreground">
                     <span class="flex items-center gap-1"><Heart :size="14" /> {{ story.likeCount }}</span>
                     <span class="flex items-center gap-1"><Eye :size="14" /> {{ story.viewCount }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="likedActiveTab === 'favorites'">
+            <div v-if="favoritePets.length === 0" class="flex flex-col items-center justify-center p-10 text-muted-foreground text-center bg-background min-h-[300px] rounded-2xl">
+              <Heart :size="48" class="mb-4 text-border" />
+              <h3 class="text-xl font-bold text-foreground mb-2">还没有收藏的宠物</h3>
+              <p class="mb-6">去宠物领养页面收藏你喜欢的宠物吧。</p>
+              <RouterLink to="/adoption" class="bg-primary text-primary-foreground px-6 py-2.5 rounded-full font-bold hover:opacity-90 transition-opacity">
+                去领养
+              </RouterLink>
+            </div>
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div
+                v-for="pet in favoritePets"
+                :key="pet.id"
+                class="bg-card rounded-2xl overflow-hidden shadow-custom border border-border cursor-pointer hover:shadow-lg transition-shadow"
+                @click="router.push(`/pet/${pet.id}`)"
+              >
+                <div class="aspect-square bg-muted relative">
+                  <img :src="pet.image" :alt="pet.name" class="w-full h-full object-cover" />
+                </div>
+                <div class="p-4">
+                  <h3 class="font-bold text-lg text-foreground mb-1">{{ pet.name }}</h3>
+                  <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>{{ pet.breed }}</span>
+                    <span>·</span>
+                    <span>{{ pet.age }}</span>
+                    <span>·</span>
+                    <span>{{ pet.gender }}</span>
                   </div>
                 </div>
               </div>

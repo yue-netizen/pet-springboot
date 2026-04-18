@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getPetById, applyAdoption, type Pet, type AdoptionApply } from '@/api/pet'
+import { getPetById, applyAdoption, addFavorite, removeFavorite, checkFavorite, type Pet, type AdoptionApply } from '@/api/pet'
 import { useUserStore } from '@/stores/user'
 import { ArrowLeft, Heart, Share2, CheckCircle2 } from 'lucide-vue-next'
 
@@ -13,6 +13,7 @@ const pet = ref<Pet | null>(null)
 const loading = ref(false)
 const showAdoptionModal = ref(false)
 const submitting = ref(false)
+const isFavorited = ref(false)
 
 const adoptionForm = ref<AdoptionApply & {
   name: string
@@ -52,10 +53,37 @@ const loadPet = async () => {
     const res = await getPetById(id)
     pet.value = res.data
     adoptionForm.value.petId = id
+    if (userStore.isLoggedIn()) {
+      try {
+        const favRes = await checkFavorite(id)
+        isFavorited.value = favRes.data || false
+      } catch (e) {
+        console.error('检查收藏状态失败', e)
+      }
+    }
   } catch (error) {
     console.error('加载宠物详情失败', error)
   } finally {
     loading.value = false
+  }
+}
+
+const toggleFavorite = async () => {
+  if (!userStore.isLoggedIn()) {
+    router.push('/login')
+    return
+  }
+  if (!pet.value) return
+  try {
+    if (isFavorited.value) {
+      await removeFavorite(pet.value.id)
+      isFavorited.value = false
+    } else {
+      await addFavorite(pet.value.id)
+      isFavorited.value = true
+    }
+  } catch (error: any) {
+    alert(error.message || '操作失败，请重试')
   }
 }
 
@@ -229,9 +257,13 @@ onMounted(() => {
               <CheckCircle2 :size="20" />
               {{ pet.status === 1 ? '申请领养' : '已被领养' }}
             </button>
-            <button class="px-6 py-4 border border-border rounded-xl font-medium hover:bg-secondary transition-colors flex items-center justify-center gap-2">
-              <Heart :size="20" />
-              收藏
+            <button 
+              @click="toggleFavorite" 
+              class="px-6 py-4 border rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+              :class="isFavorited ? 'border-red-300 bg-red-50 text-red-500 hover:bg-red-100' : 'border-border hover:bg-secondary'"
+            >
+              <Heart :size="20" :fill="isFavorited ? 'currentColor' : 'none'" />
+              {{ isFavorited ? '已收藏' : '收藏' }}
             </button>
             <button class="px-6 py-4 border border-border rounded-xl font-medium hover:bg-secondary transition-colors flex items-center justify-center gap-2">
               <Share2 :size="20" />

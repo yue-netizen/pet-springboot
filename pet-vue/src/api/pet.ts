@@ -96,3 +96,21 @@ export function getMyAdoptionRecords(page = 1, size = 10) {
     params: { page, size },
   })
 }
+
+export function addFavorite(petId: number) {
+  return request.post(`/favorite/${petId}`)
+}
+
+export function removeFavorite(petId: number) {
+  return request.delete(`/favorite/${petId}`)
+}
+
+export function checkFavorite(petId: number) {
+  return request.get<any, { data: boolean }>(`/favorite/check/${petId}`)
+}
+
+export function getMyFavorites(page = 1, size = 10) {
+  return request.get<any, { data: { records: Pet[]; total: number } }>('/favorite/my', {
+    params: { page, size },
+  })
+}
