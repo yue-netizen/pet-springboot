@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,19 +53,17 @@ public class ChatServiceImpl extends ServiceImpl<ConversationMapper, Conversatio
                 .flatMap(c -> java.util.Set.of(c.getUser1Id(), c.getUser2Id()).stream())
                 .collect(Collectors.toSet());
 
-        Map<Long, UserDTO> userMap = userIds.stream()
-                .collect(Collectors.toMap(
-                        id -> id,
-                        id -> {
-                            try {
-                                return userFeignClient.getUserById(id).getData();
-                            } catch (Exception e) {
-                                log.error("获取用户信息失败: {}", id, e);
-                                return null;
-                            }
-                        },
-                        (a, b) -> a
-                ));
+        Map<Long, UserDTO> userMap = new HashMap<>();
+        for (Long id : userIds) {
+            try {
+                UserDTO user = userFeignClient.getUserById(id).getData();
+                if (user != null) {
+                    userMap.put(id, user);
+                }
+            } catch (Exception e) {
+                log.error("获取用户信息失败: {}", id, e);
+            }
+        }
 
         for (Conversation conv : conversations) {
             UserDTO user1 = userMap.get(conv.getUser1Id());
