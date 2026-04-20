@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { getAllUsers, updateUserByAdmin, deleteUser, updateUserStatus, getConfigList, updateConfig, uploadImage, type SysConfig, type UserDTO, getPetList, getPetById, addPet, updatePet, deletePet, type Pet, getAdoptionList, getAdoptionDetail, reviewAdoption, updateAdoption, type AdoptionDetail, getPostList, getPostById, deletePost, type Post, getJobList, addJob as adminAddJob, updateJob as adminUpdateJob, deleteJob as adminDeleteJob, type Job, getApplicationList, type JobApplication, getEmployeeList, approveApplication as adminApproveApplication, rejectApplication as adminRejectApplication, updateEmployee as adminUpdateEmployee, updateEmployeeStatus as adminUpdateEmployeeStatus, deleteEmployee as adminDeleteEmployee, type Employee, getStoryList, getStoryById, addStory, updateStory, deleteStory, type Story } from '@/api/admin'
+import { getAllUsers, updateUserByAdmin, deleteUser, updateUserStatus, getConfigList, updateConfig, uploadImage, type SysConfig, type UserDTO, getPetList, getPetById, addPet, updatePet, deletePet, type Pet, getAdoptionList, getAdoptionDetail, reviewAdoption, updateAdoption, type AdoptionDetail, getPostList, getPostById, deletePost, type Post, getJobList, addJob as adminAddJob, updateJob as adminUpdateJob, deleteJob as adminDeleteJob, type Job, getApplicationList, type JobApplication, getEmployeeList, approveApplication as adminApproveApplication, rejectApplication as adminRejectApplication, updateEmployee as adminUpdateEmployee, updateEmployeeStatus as adminUpdateEmployeeStatus, deleteEmployee as adminDeleteEmployee, type Employee, getStoryList, getStoryById, addStory, updateStory, deleteStory, type Story, getAdminDonationList, getAdminDonationStats, getAdminDonationTotal, type DonationStat, type AdminDonation } from '@/api/admin'
 import { getTipsList, getTipsById, createTips, updateTips, deleteTips, type PetTips } from '@/api/tips'
 
 const router = useRouter()
@@ -28,7 +28,8 @@ const tabs = [
   { key: 'stories', label: '故事管理' },
   { key: 'about', label: '关于我们' },
   { key: 'rules', label: '领养规则' },
-  { key: 'tips', label: '养宠贴士' }
+  { key: 'tips', label: '养宠贴士' },
+  { key: 'donations', label: '捐款管理' }
 ]
 
 const aboutSections = [
@@ -130,6 +131,10 @@ const storyForm = ref<Story>({
   userId: undefined
 })
 
+const donationList = ref<AdminDonation[]>([])
+const donationStats = ref<DonationStat[]>([])
+const donationTotal = ref(0)
+
 const adoptedPets = computed(() => petsList.value.filter(p => p.status === 2))
 
 const configMap = computed(() => {
@@ -176,6 +181,7 @@ async function loadData() {
     await loadApplications()
     await loadEmployees()
     await loadStories()
+    await loadDonations()
   } catch (e) {
     console.error('加载数据失败', e)
   } finally {
@@ -260,6 +266,23 @@ async function loadStories() {
   } catch (e) {
     console.error('加载故事失败', e)
     storiesList.value = []
+  }
+}
+
+async function loadDonations() {
+  try {
+    const [listRes, statsRes, totalRes] = await Promise.all([
+      getAdminDonationList(),
+      getAdminDonationStats(),
+      getAdminDonationTotal()
+    ])
+    donationList.value = listRes.data || []
+    donationStats.value = statsRes.data || []
+    donationTotal.value = totalRes.data || 0
+  } catch (e) {
+    console.error('加载捐款数据失败', e)
+    donationList.value = []
+    donationStats.value = []
   }
 }
 
@@ -1978,6 +2001,76 @@ onMounted(() => {
               <div v-if="storiesList.length === 0 && !loading" class="text-center py-12 text-muted-foreground">
                 暂无故事
               </div>
+            </div>
+          </div>
+
+          <div v-if="activeTab === 'donations'" class="space-y-6">
+            <div class="flex justify-between items-center">
+              <h2 class="text-xl font-bold text-foreground">捐款管理</h2>
+              <div class="flex gap-4 text-sm">
+                <span class="text-muted-foreground">
+                  捐款总额: <span class="text-primary font-bold text-lg">¥{{ donationTotal.toLocaleString() }}</span>
+                </span>
+                <span class="text-muted-foreground">
+                  共 <span class="text-primary font-bold">{{ donationList.length }}</span> 笔捐款
+                </span>
+              </div>
+            </div>
+
+            <div class="bg-card rounded-xl p-6 border border-border">
+              <h3 class="text-lg font-bold text-foreground mb-4">用户捐款统计</h3>
+              <div v-if="donationStats.length > 0" class="overflow-x-auto">
+                <table class="w-full">
+                  <thead>
+                    <tr class="border-b border-border">
+                      <th class="text-left py-3 px-4 text-muted-foreground font-medium">用户ID</th>
+                      <th class="text-left py-3 px-4 text-muted-foreground font-medium">用户名</th>
+                      <th class="text-left py-3 px-4 text-muted-foreground font-medium">昵称</th>
+                      <th class="text-right py-3 px-4 text-muted-foreground font-medium">累计捐款金额</th>
+                      <th class="text-center py-3 px-4 text-muted-foreground font-medium">捐款次数</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="stat in donationStats" :key="stat.userId" class="border-b border-border/50 hover:bg-muted/30">
+                      <td class="py-3 px-4">{{ stat.userId }}</td>
+                      <td class="py-3 px-4">{{ stat.username || '-' }}</td>
+                      <td class="py-3 px-4">{{ stat.nickname || '-' }}</td>
+                      <td class="py-3 px-4 text-right font-bold text-primary">¥{{ Number(stat.totalAmount).toLocaleString() }}</td>
+                      <td class="py-3 px-4 text-center">{{ stat.donateCount }} 次</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else class="text-center py-12 text-muted-foreground">暂无捐款记录</div>
+            </div>
+
+            <div class="bg-card rounded-xl p-6 border border-border">
+              <h3 class="text-lg font-bold text-foreground mb-4">全部捐款明细</h3>
+              <div v-if="donationList.length > 0" class="overflow-x-auto">
+                <table class="w-full">
+                  <thead>
+                    <tr class="border-b border-border">
+                      <th class="text-left py-3 px-4 text-muted-foreground font-medium">ID</th>
+                      <th class="text-left py-3 px-4 text-muted-foreground font-medium">用户</th>
+                      <th class="text-left py-3 px-4 text-muted-foreground font-medium">昵称</th>
+                      <th class="text-right py-3 px-4 text-muted-foreground font-medium">捐款金额</th>
+                      <th class="text-left py-3 px-4 text-muted-foreground font-medium">交易号</th>
+                      <th class="text-left py-3 px-4 text-muted-foreground font-medium">捐款时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="d in donationList" :key="d.id" class="border-b border-border/50 hover:bg-muted/30">
+                      <td class="py-3 px-4">{{ d.id }}</td>
+                      <td class="py-3 px-4">{{ d.username || '-' }}</td>
+                      <td class="py-3 px-4">{{ d.nickname || '-' }}</td>
+                      <td class="py-3 px-4 text-right font-bold text-primary">¥{{ d.amount }}</td>
+                      <td class="py-3 px-4 text-muted-foreground text-sm font-mono">{{ d.transactionId }}</td>
+                      <td class="py-3 px-4 text-muted-foreground text-sm">{{ d.createTime }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else class="text-center py-12 text-muted-foreground">暂无捐款记录</div>
             </div>
           </div>
 

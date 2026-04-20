@@ -281,3 +281,37 @@ export function deleteStory(id: number) {
   return request.delete(`/admin/story/${id}`)
 }
 
+export interface AdminDonation {
+  id: number
+  userId: number
+  nickname?: string
+  username?: string
+  avatar?: string
+  amount: number
+  paymentMethod: string
+  status: number
+  transactionId: string
+  remark: string
+  createTime: string
+}
+
+export interface DonationStat {
+  userId: number
+  nickname?: string
+  username?: string
+  totalAmount: number
+  donateCount: number
+}
+
+export function getAdminDonationList() {
+  return request.get<any, { data: AdminDonation[] }>('/admin/donation/list')
+}
+
+export function getAdminDonationStats() {
+  return request.get<any, { data: DonationStat[] }>('/admin/donation/stats')
+}
+
+export function getAdminDonationTotal() {
+  return request.get<any, { data: number }>('/admin/donation/total')
+}
+

@@ -11,7 +11,6 @@ import com.pet.donation.service.DonationService;
 import com.pet.donation.vo.DonationVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,8 +21,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DonationServiceImpl extends ServiceImpl<DonationMapper, Donation> implements DonationService {
-
-    private final RabbitTemplate rabbitTemplate;
 
     @Override
     public Result<Page<Donation>> getDonationList(Integer page, Integer size) {
@@ -49,8 +46,6 @@ public class DonationServiceImpl extends ServiceImpl<DonationMapper, Donation> i
         donation.setRemark(donationVO.getRemark());
         
         this.save(donation);
-        
-        rabbitTemplate.convertAndSend("donation.exchange", "donation.created", donation);
         
         return Result.success(donation);
     }
