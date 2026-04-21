@@ -3,6 +3,7 @@ package com.pet.social.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.pet.common.constant.RedisConstants;
 import com.pet.common.dto.UserDTO;
 import com.pet.common.exception.BusinessException;
 import com.pet.common.feign.UserFeignClient;
@@ -15,10 +16,12 @@ import com.pet.social.service.CommentService;
 import com.pet.social.vo.CommentVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -27,19 +30,30 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     private final PostMapper postMapper;
     private final UserFeignClient userFeignClient;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public Result<Page<Comment>> getCommentsByPostId(Long postId, Integer page, Integer size) {
+        String cacheKey = RedisConstants.SOCIAL_POST_COMMENT_KEY + postId + ":" + page + ":" + size;
+        Object cached = redisTemplate.opsForValue().get(cacheKey);
+
+        if (cached != null) {
+            log.info("命中帖子评论缓存, postId={}, page={}", postId, page);
+            return Result.success((Page<Comment>) cached);
+        }
+
         LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Comment::getPostId, postId)
                 .eq(Comment::getStatus, 1)
                 .orderByDesc(Comment::getCreateTime);
-        
+
         Page<Comment> commentPage = new Page<>(page, size);
         Page<Comment> result = this.page(commentPage, wrapper);
-        
+
         fillUserInfo(result.getRecords());
-        
+
+        redisTemplate.opsForValue().set(cacheKey, result, RedisConstants.SOCIAL_COMMENT_CACHE_TIME, TimeUnit.SECONDS);
+
         return Result.success(result);
     }
 
@@ -70,7 +84,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         if (post == null) {
             throw BusinessException.of("帖子不存在");
         }
-        
+
         Comment comment = new Comment();
         comment.setPostId(commentVO.getPostId());
         comment.setUserId(userId);
@@ -78,12 +92,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         comment.setContent(commentVO.getContent());
         comment.setLikeCount(0);
         comment.setStatus(1);
-        
+
         this.save(comment);
-        
+
         post.setCommentCount(post.getCommentCount() + 1);
         postMapper.updateById(post);
-        
+
+        clearPostCache(commentVO.getPostId());
+        clearCommentCache(commentVO.getPostId());
+
         return Result.success();
     }
 
@@ -94,19 +111,35 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         if (comment == null) {
             throw BusinessException.of("评论不存在");
         }
-        
+
         if (!comment.getUserId().equals(userId)) {
             throw BusinessException.of("无权删除该评论");
         }
-        
+
         this.removeById(id);
-        
+
         Post post = postMapper.selectById(comment.getPostId());
         if (post != null && post.getCommentCount() > 0) {
             post.setCommentCount(post.getCommentCount() - 1);
             postMapper.updateById(post);
         }
-        
+
+        clearPostCache(comment.getPostId());
+        clearCommentCache(comment.getPostId());
+
         return Result.success();
+    }
+
+    private void clearPostCache(Long postId) {
+        String cacheKey = RedisConstants.SOCIAL_POST_KEY + postId;
+        redisTemplate.delete(cacheKey);
+    }
+
+    private void clearCommentCache(Long postId) {
+        String pattern = RedisConstants.SOCIAL_POST_COMMENT_KEY + postId + ":*";
+        var keys = redisTemplate.keys(pattern);
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
     }
 }

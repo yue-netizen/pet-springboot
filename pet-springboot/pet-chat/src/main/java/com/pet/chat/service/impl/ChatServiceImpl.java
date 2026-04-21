@@ -173,9 +173,18 @@ public class ChatServiceImpl extends ServiceImpl<ConversationMapper, Conversatio
         
         String unreadKey = RedisConstants.CHAT_UNREAD_KEY + receiverId;
         redisTemplate.opsForValue().increment(unreadKey);
-        
+
+        Map<String, Object> chatMessage = new HashMap<>();
+        chatMessage.put("id", message.getId());
+        chatMessage.put("conversationId", message.getConversationId());
+        chatMessage.put("senderId", message.getSenderId());
+        chatMessage.put("receiverId", message.getReceiverId());
+        chatMessage.put("content", message.getContent());
+        chatMessage.put("type", message.getType());
+        chatMessage.put("createTime", message.getCreateTime().toString());
+
         try {
-            rabbitTemplate.convertAndSend("chat.exchange", "chat.message", message);
+            rabbitTemplate.convertAndSend("chat.exchange", "chat.message", chatMessage);
         } catch (Exception e) {
             log.warn("消息推送失败: {}", e.getMessage());
         }

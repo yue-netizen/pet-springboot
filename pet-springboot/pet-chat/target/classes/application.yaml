@@ -39,8 +39,8 @@ spring:
   rabbitmq:
     host: 192.168.100.128
     port: 5672
-    username: guest
-    password: guest
+    username: itheima
+    password: 123321
   ai:
     openai:
       api-key: ${DASHSCOPE_API_KEY}

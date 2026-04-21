@@ -3,6 +3,8 @@ package com.pet.social.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.pet.common.constant.RedisConstants;
+import com.pet.common.dto.UserDTO;
 import com.pet.common.exception.BusinessException;
 import com.pet.common.result.Result;
 import com.pet.social.entity.Comment;
@@ -14,9 +16,10 @@ import com.pet.social.mapper.PostMapper;
 import com.pet.social.service.PostService;
 import com.pet.social.vo.PostVO;
 import com.pet.common.feign.UserFeignClient;
-import com.pet.common.dto.UserDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,6 +39,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private final CommentMapper commentMapper;
     private final com.pet.social.service.TopicService topicService;
     private final UserFeignClient userFeignClient;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     private void fillUserInfo(List<Post> posts) {
         if (posts == null || posts.isEmpty()) return;
@@ -96,12 +102,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         if (userId != null) {
             for (Post post : result.getRecords()) {
-                LambdaQueryWrapper<Like> likeWrapper = new LambdaQueryWrapper<>();
-                likeWrapper.eq(Like::getUserId, userId)
-                        .eq(Like::getTargetId, post.getId())
-                        .eq(Like::getTargetType, 1);
-                long count = likeMapper.selectCount(likeWrapper);
-                post.setLiked(count > 0);
+                String likeKey = RedisConstants.SOCIAL_POST_LIKE_KEY + post.getId();
+                Boolean isMember = redisTemplate.opsForSet().isMember(likeKey, userId);
+                post.setLiked(Boolean.TRUE.equals(isMember));
             }
         }
 
@@ -112,18 +115,25 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     public Result<Post> getPostById(Long id, Long userId) {
-        Post post = this.getById(id);
-        if (post == null) {
-            throw BusinessException.of("帖子不存在");
+        String cacheKey = RedisConstants.SOCIAL_POST_KEY + id;
+        Object cached = redisTemplate.opsForValue().get(cacheKey);
+
+        Post post;
+        if (cached != null) {
+            post = (Post) cached;
+            log.info("命中帖子缓存, postId={}", id);
+        } else {
+            post = this.getById(id);
+            if (post == null) {
+                throw BusinessException.of("帖子不存在");
+            }
+            redisTemplate.opsForValue().set(cacheKey, post, RedisConstants.SOCIAL_POST_CACHE_TIME, TimeUnit.SECONDS);
         }
 
         if (userId != null) {
-            LambdaQueryWrapper<Like> likeWrapper = new LambdaQueryWrapper<>();
-            likeWrapper.eq(Like::getUserId, userId)
-                    .eq(Like::getTargetId, post.getId())
-                    .eq(Like::getTargetType, 1);
-            long count = likeMapper.selectCount(likeWrapper);
-            post.setLiked(count > 0);
+            String likeKey = RedisConstants.SOCIAL_POST_LIKE_KEY + id;
+            Boolean isMember = redisTemplate.opsForSet().isMember(likeKey, userId);
+            post.setLiked(Boolean.TRUE.equals(isMember));
         }
 
         fillUserInfo(post);
@@ -132,8 +142,18 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public Result<Void> createPost(PostVO postVO, Long userId) {
+        Map<String, Object> message = new HashMap<>();
+        message.put("postVO", postVO);
+        message.put("userId", userId);
+
+        rabbitTemplate.convertAndSend("social.exchange", "social.post.create", message);
+        log.info("发帖请求已发送至MQ异步处理, userId={}", userId);
+
+        return Result.success();
+    }
+
+    public void handleCreatePost(PostVO postVO, Long userId) {
         Post post = new Post();
         post.setUserId(userId);
         post.setTitle(postVO.getTitle());
@@ -146,9 +166,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         post.setLikeCount(0);
         post.setCommentCount(0);
         post.setStatus(1);
-        
+
         this.save(post);
-        
+
         if (postVO.getTags() != null && !postVO.getTags().isEmpty()) {
             String[] tags = postVO.getTags().split(",");
             for (String tag : tags) {
@@ -158,8 +178,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
                 }
             }
         }
-        
-        return Result.success();
+
+        log.info("帖子创建完成, postId={}, userId={}", post.getId(), userId);
     }
 
     @Override
@@ -169,21 +189,31 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         if (post == null) {
             throw BusinessException.of("帖子不存在");
         }
-        
+
         if (!post.getUserId().equals(userId)) {
             throw BusinessException.of("无权删除该帖子");
         }
-        
+
         this.removeById(id);
-        
+
         LambdaQueryWrapper<Comment> commentWrapper = new LambdaQueryWrapper<>();
         commentWrapper.eq(Comment::getPostId, id);
         commentMapper.delete(commentWrapper);
-        
+
         LambdaQueryWrapper<Like> likeWrapper = new LambdaQueryWrapper<>();
         likeWrapper.eq(Like::getTargetId, id).eq(Like::getTargetType, 1);
         likeMapper.delete(likeWrapper);
-        
+
+        String cacheKey = RedisConstants.SOCIAL_POST_KEY + id;
+        redisTemplate.delete(cacheKey);
+
+        String likeKey = RedisConstants.SOCIAL_POST_LIKE_KEY + id;
+        redisTemplate.delete(likeKey);
+
+        String commentCacheKey = RedisConstants.SOCIAL_POST_COMMENT_KEY + id;
+        redisTemplate.delete(commentCacheKey);
+
+        log.info("帖子已删除并清除缓存, postId={}", id);
         return Result.success();
     }
 
@@ -194,25 +224,27 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         if (post == null) {
             throw BusinessException.of("帖子不存在");
         }
-        
-        LambdaQueryWrapper<Like> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Like::getUserId, userId)
-                .eq(Like::getTargetId, postId)
-                .eq(Like::getTargetType, 1);
-        
-        if (likeMapper.selectCount(wrapper) > 0) {
+
+        String likeKey = RedisConstants.SOCIAL_POST_LIKE_KEY + postId;
+        Boolean isMember = redisTemplate.opsForSet().isMember(likeKey, userId);
+        if (Boolean.TRUE.equals(isMember)) {
             throw BusinessException.of("已点赞过该帖子");
         }
-        
+
         Like like = new Like();
         like.setUserId(userId);
         like.setTargetId(postId);
         like.setTargetType(1);
         likeMapper.insert(like);
-        
+
         post.setLikeCount(post.getLikeCount() + 1);
         this.updateById(post);
-        
+
+        redisTemplate.opsForSet().add(likeKey, userId);
+
+        String cacheKey = RedisConstants.SOCIAL_POST_KEY + postId;
+        redisTemplate.delete(cacheKey);
+
         return Result.success();
     }
 
@@ -223,30 +255,50 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         if (post == null) {
             throw BusinessException.of("帖子不存在");
         }
-        
-        LambdaQueryWrapper<Like> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Like::getUserId, userId)
-                .eq(Like::getTargetId, postId)
-                .eq(Like::getTargetType, 1);
-        
-        int deleted = likeMapper.delete(wrapper);
-        if (deleted > 0 && post.getLikeCount() > 0) {
-            post.setLikeCount(post.getLikeCount() - 1);
-            this.updateById(post);
+
+        String likeKey = RedisConstants.SOCIAL_POST_LIKE_KEY + postId;
+        Long removed = redisTemplate.opsForSet().remove(likeKey, userId);
+
+        if (removed != null && removed > 0) {
+            LambdaQueryWrapper<Like> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Like::getUserId, userId)
+                    .eq(Like::getTargetId, postId)
+                    .eq(Like::getTargetType, 1);
+            likeMapper.delete(wrapper);
+
+            if (post.getLikeCount() > 0) {
+                post.setLikeCount(post.getLikeCount() - 1);
+                this.updateById(post);
+            }
         }
-        
+
+        String cacheKey = RedisConstants.SOCIAL_POST_KEY + postId;
+        redisTemplate.delete(cacheKey);
+
         return Result.success();
     }
 
     @Override
     public Result<Boolean> checkPostLiked(Long postId, Long userId) {
+        String likeKey = RedisConstants.SOCIAL_POST_LIKE_KEY + postId;
+        Boolean isMember = redisTemplate.opsForSet().isMember(likeKey, userId);
+
+        if (isMember != null) {
+            return Result.success(isMember);
+        }
+
         LambdaQueryWrapper<Like> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Like::getUserId, userId)
                 .eq(Like::getTargetId, postId)
                 .eq(Like::getTargetType, 1);
-        
         long count = likeMapper.selectCount(wrapper);
-        return Result.success(count > 0);
+        boolean liked = count > 0;
+
+        if (liked) {
+            redisTemplate.opsForSet().add(likeKey, userId);
+        }
+
+        return Result.success(liked);
     }
 
     @Override
@@ -293,7 +345,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         List<Post> orderedPosts = postIds.stream()
                 .filter(postMap::containsKey)
                 .map(postMap::get)
-                .peek(post -> post.setLiked(true))
+                .peek(p -> p.setLiked(true))
                 .toList();
 
         Page<Post> resultPage = new Page<>(page, size, likes.getTotal());
@@ -345,12 +397,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         if (userId != null) {
             for (Post post : result.getRecords()) {
-                LambdaQueryWrapper<Like> likeWrapper = new LambdaQueryWrapper<>();
-                likeWrapper.eq(Like::getUserId, userId)
-                        .eq(Like::getTargetId, post.getId())
-                        .eq(Like::getTargetType, 1);
-                long count = likeMapper.selectCount(likeWrapper);
-                post.setLiked(count > 0);
+                String likeKey = RedisConstants.SOCIAL_POST_LIKE_KEY + post.getId();
+                Boolean isMember = redisTemplate.opsForSet().isMember(likeKey, userId);
+                post.setLiked(Boolean.TRUE.equals(isMember));
             }
         }
 
