@@ -163,6 +163,7 @@ public class ChatServiceImpl extends ServiceImpl<ConversationMapper, Conversatio
         
         String lastMsg = messageVO.getType() != null && messageVO.getType() == 2 ? "[图片]" : messageVO.getContent();
         conversation.setLastMessage(lastMsg);
+        conversation.setLastMessageTime(LocalDateTime.now());
         if (conversation.getUser1Id().equals(senderId)) {
             conversation.setUnreadCount2(conversation.getUnreadCount2() + 1);
         } else {
@@ -204,7 +205,10 @@ public class ChatServiceImpl extends ServiceImpl<ConversationMapper, Conversatio
                 .set(Message::getStatus, 1)
                 .set(Message::getReadTime, LocalDateTime.now());
         messageMapper.update(null, updateWrapper);
-        
+
+        String unreadKey = RedisConstants.CHAT_UNREAD_KEY + userId;
+        redisTemplate.delete(unreadKey);
+
         return Result.success();
     }
 

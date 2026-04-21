@@ -69,7 +69,9 @@ const loadMessages = async (conversationId: number) => {
     messages.value = res.data?.records || []
     markAsRead(conversationId).catch(e => console.error('标记已读失败', e))
     await nextTick()
-    scrollToBottom()
+    setTimeout(() => {
+      scrollToBottom()
+    }, 100)
   } catch (error) {
     console.error('加载消息失败', error)
   } finally {
@@ -136,18 +138,18 @@ const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7
 
 const handleSendImage = async () => {
   if (!selectedImage.value || !currentConversationId.value || sendingMessage.value) return
-  
+
   sendingMessage.value = true
   try {
     const base64 = await compressImage(selectedImage.value, 800, 0.7)
-    
+
     const receiverId = getReceiverId()
-    
+
     await sendMessage({ receiverId, content: base64, type: 2 })
     selectedImage.value = null
     imagePreview.value = ''
     showImageUpload.value = false
-    loadMessages(currentConversationId.value!)
+    await loadMessages(currentConversationId.value!)
     loadConversations()
   } catch (error) {
     console.error('发送图片失败', error)
@@ -158,14 +160,14 @@ const handleSendImage = async () => {
 
 const handleSendText = async () => {
   if (!newMessage.value.trim() || !currentConversationId.value || sendingMessage.value) return
-  
+
   sendingMessage.value = true
   try {
     const receiverId = getReceiverId()
-    
+
     await sendMessage({ receiverId, content: newMessage.value.trim() })
     newMessage.value = ''
-    loadMessages(currentConversationId.value!)
+    await loadMessages(currentConversationId.value!)
     loadConversations()
   } catch (error) {
     console.error('发送消息失败', error)
@@ -470,7 +472,7 @@ const closeAllPopups = () => {
               <h4 class="font-bold text-foreground text-sm truncate">
                 {{ conv.user1Id === currentUserId ? (conv.user2Nickname || '用户' + conv.user2Id) : (conv.user1Nickname || '用户' + conv.user1Id) }}
               </h4>
-              <span class="text-xs text-muted-foreground whitespace-nowrap ml-2">{{ formatTime(conv.updateTime) }}</span>
+              <span class="text-xs text-muted-foreground whitespace-nowrap ml-2">{{ formatTime(conv.lastMessageTime || conv.updateTime) }}</span>
             </div>
             <div class="flex justify-between items-center">
               <p class="text-sm text-muted-foreground truncate">{{ conv.lastMessage }}</p>

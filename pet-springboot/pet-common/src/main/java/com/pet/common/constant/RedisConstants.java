@@ -7,6 +7,8 @@ public interface RedisConstants {
     String PET_DETAIL_KEY = "pet:pet:detail:";
     String SOCIAL_POST_KEY = "pet:social:post:";
     String CHAT_UNREAD_KEY = "pet:chat:unread:";
+    String TIPS_AI_ANSWER_KEY = "pet:tips:ai:";
     long TOKEN_EXPIRE_TIME = 24 * 60 * 60;
     long CACHE_EXPIRE_TIME = 30 * 60;
+    long TIPS_AI_CACHE_TIME = 3 * 60 * 60;
 }
