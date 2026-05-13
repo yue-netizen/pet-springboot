@@ -10,7 +10,7 @@ import org.springframework.context.annotation.ComponentScan;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = "com.pet.common.feign")
-@MapperScan("com.pet.tips.mapper")
+@MapperScan({"com.pet.tips.mapper", "com.pet.tips.ai.mapper"})
 @ComponentScan(basePackages = {"com.pet.tips", "com.pet.common"})
 public class TipsApplication {
 

@@ -48,6 +48,13 @@ spring:
           model: qwen-max-latest
           temperature: 0.7
 
+tips-ai:
+  embedding-model: text-embedding-v3
+  vector-store:
+    enabled: true
+    search-top-k: 3
+    similarity-threshold: 0.3
+
 seata:
   enabled: false
 
