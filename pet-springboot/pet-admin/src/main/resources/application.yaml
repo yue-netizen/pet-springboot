@@ -1,76 +1,93 @@
+# ============================================
+# 管理员服务配置 (pet-admin)
+# ============================================
+# 端口：9002
+# 功能：后台管理、宠物管理、用户管理、领养审核等
+#
+# ⚠️⚠️⚠️ 重要安全提示 ⚠️⚠️⚠️
+# 本文件中的密码配置已移除默认值！
+# 启动前必须设置环境变量或创建 .env 文件
+# 详细配置请参考 .env.example 文件
+# ============================================
+
 server:
-  port: 9002
+  port: 9002  # 服务端口
 
 spring:
   application:
-    name: pet-admin
+    name: pet-admin  # 服务名称（用于服务发现）
   servlet:
     multipart:
-      max-file-size: 100MB
-      max-request-size: 100MB
-      enabled: true
+      max-file-size: 10MB  # 单个文件最大大小（安全限制）
+      max-request-size: 10MB  # 请求最大大小
+      enabled: true  # 启用文件上传
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.100.128:8848
-        enabled: true
+        # Nacos 注册中心地址（用于服务注册与发现）
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        enabled: true  # 启用服务注册
       config:
-        server-addr: 192.168.100.128:8848
+        # Nacos 配置中心地址（可选，用于动态配置）
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
         file-extension: yaml
-        enabled: false
+        enabled: false  # 默认关闭，需要时开启
   datasource:
-    url: jdbc:mysql://localhost:3306/pet?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    # MySQL 数据库连接配置
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:pet}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}  # 数据库用户名（建议使用环境变量）
+    password: ${DB_PASSWORD:}  # 🔒 必须配置！参考 .env.example
     driver-class-name: com.mysql.cj.jdbc.Driver
-    type: com.alibaba.druid.pool.DruidDataSource
+    type: com.alibaba.druid.pool.DruidDataSource  # 使用 Druid 连接池
     druid:
-      initial-size: 5
-      min-idle: 5
-      max-active: 20
-      max-wait: 60000
+      initial-size: 5  # 初始连接数
+      min-idle: 5  # 最小空闲连接数
+      max-active: 20  # 最大活跃连接数
+      max-wait: 60000  # 获取连接超时时间（毫秒）
   data:
     redis:
-      host: 192.168.100.128
-      port: 6379
-      password: 123321
+      # Redis 配置（用于缓存、Session等）
+      host: ${REDIS_HOST:localhost}  # Redis 主机地址
+      port: ${REDIS_PORT:6379}  # Redis 端口
+      password: ${REDIS_PASSWORD:}  # 🔒 生产环境必须设置！
   rabbitmq:
-    host: 192.168.100.128
-    port: 5672
-    username: guest
-    password: guest
+    # RabbitMQ 消息队列配置（用于异步消息处理）
+    host: ${RABBITMQ_HOST:localhost}  # RabbitMQ 主机地址
+    port: ${RABBITMQ_PORT:5672}  # RabbitMQ 端口
+    username: ${RABBITMQ_USERNAME:guest}  # RabbitMQ 用户名
+    password: ${RABBITMQ_PASSWORD:}  # 🔒 生产环境必须修改！
 
 seata:
-  enabled: false
+  enabled: false  # 分布式事务框架（暂未启用）
 
 mybatis-plus:
-  mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.pet.admin.entity
+  mapper-locations: classpath:mapper/*.xml  # Mapper XML 文件位置
+  type-aliases-package: com.pet.admin.entity  # 实体类包路径
   configuration:
-    map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true  # 开启下划线转驼峰命名
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # SQL 日志输出
 
 logging:
   level:
-    com.pet.admin: debug
+    com.pet.admin: debug  # 本服务日志级别（生产环境建议改为 info 或 warn）
 
 knife4j:
-  enable: true
+  enable: true  # 启用 Knife4j API 文档
   openapi:
-    title: 管理员服务API
-    description: 宠物领养平台管理员服务接口文档
-    version: 1.0.0
+    title: 管理员服务API  # API 文档标题
+    description: 宠物领养平台管理员服务接口文档  # API 文档描述
+    version: 1.0.0  # 版本号
     group:
       default:
-        group-name: default
-        api-rule: package
+        group-name: default  # 分组名称
+        api-rule: package  # 按包路径扫描接口
         api-rule-resources:
-          - com.pet.admin.controller
+          - com.pet.admin.controller  # Controller 包路径
 
 aliyun:
   oss:
-    enabled: true
-    endpoint: https://oss-cn-beijing.aliyuncs.com
-    access-key-id: ${OSS_ACCESS_KEY_ID}
-    access-key-secret: ${OSS_ACCESS_KEY_SECRET}
-    bucket-name: java-aiu
+    enabled: false  # 🔒 默认关闭！需配置 AccessKey 后开启
+    endpoint: https://oss-cn-beijing.aliyuncs.com  # OSS Endpoint
+    access-key-id: ${OSS_ACCESS_KEY_ID:}  # 🔒 必须配置！
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}  # 🔒 必须配置！
+    bucket-name: your-bucket-name  # 🔒 请修改为你自己的 Bucket 名称

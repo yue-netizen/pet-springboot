@@ -1,35 +1,50 @@
+# ============================================
+# API网关配置 (pet-gateway)
+# ============================================
+# 端口：9000
+# 功能：统一入口、路由转发、身份认证、负载均衡
+#
+# ⚠️⚠️⚠️ 重要安全提示 ⚠️⚠️⚠️
+# 本文件中的密码配置已移除默认值！
+# 启动前必须设置环境变量或创建 .env 文件
+# 详细配置请参考 .env.example 文件
+# ============================================
+
 server:
-  port: 9000
+  port: 9000  # 网关端口（所有请求的统一入口）
 
 spring:
   application:
-    name: pet-gateway
+    name: pet-gateway  # 服务名称
   servlet:
     multipart:
-      max-file-size: 100MB
-      max-request-size: 100MB
-      enabled: true
+      max-file-size: 10MB  # 单个文件最大大小（安全限制）
+      max-request-size: 10MB  # 请求最大大小
+      enabled: true  # 启用文件上传
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.100.128:8848
-        enabled: true
+        # Nacos 注册中心地址（用于服务注册与发现）
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        enabled: true  # 启用服务注册
       config:
-        server-addr: 192.168.100.128:8848
+        # Nacos 配置中心地址（可选，用于动态配置）
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
         file-extension: yaml
-        enabled: false
+        enabled: false  # 默认关闭，需要时开启
     gateway:
       discovery:
         locator:
-          enabled: true
-          lower-case-service-id: true
+          enabled: true  # 启用服务发现自动路由
+          lower-case-service-id: true  # 服务ID转为小写
       routes:
-        - id: pet-user
-          uri: lb://pet-user
+        # 路由规则配置（根据URL路径转发到对应微服务）
+        - id: pet-user  # 路由ID（唯一标识）
+          uri: lb://pet-user  # 目标服务地址（lb://表示负载均衡）
           predicates:
-            - Path=/api/user/**,/api/auth/**,/api/follow/**
+            - Path=/api/user/**,/api/auth/**,/api/follow/**  # 匹配路径规则
           filters:
-            - StripPrefix=1
+            - StripPrefix=1  # 过滤器：去除路径前缀（去掉 /api）
         - id: pet-admin
           uri: lb://pet-admin
           predicates:
@@ -80,16 +95,18 @@ spring:
             - StripPrefix=1
   data:
     redis:
-      host: 192.168.100.128
-      port: 6379
-      password: 123321
+      # Redis 配置（用于限流、Token缓存等）
+      host: ${REDIS_HOST:localhost}  # Redis 主机地址
+      port: ${REDIS_PORT:6379}  # Redis 端口
+      password: ${REDIS_PASSWORD:}  # 🔒 生产环境必须设置！
   rabbitmq:
-    host: 192.168.100.128
-    port: 5672
-    username: guest
-    password: guest
+    # RabbitMQ 消息队列配置
+    host: ${RABBITMQ_HOST:localhost}  # RabbitMQ 主机地址
+    port: ${RABBITMQ_PORT:5672}  # RabbitMQ 端口
+    username: ${RABBITMQ_USERNAME:guest}  # RabbitMQ 用户名
+    password: ${RABBITMQ_PASSWORD:}  # 🔒 生产环境必须修改！
 
 logging:
   level:
-    com.pet.gateway: debug
-    org.springframework.cloud.gateway: debug
+    com.pet.gateway: debug  # 网关日志级别（生产环境建议改为 info 或 warn）
+    org.springframework.cloud.gateway: debug  # Spring Cloud Gateway 框架日志级别
