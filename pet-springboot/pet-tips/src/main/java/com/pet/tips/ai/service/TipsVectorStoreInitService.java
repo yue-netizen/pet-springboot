@@ -2,10 +2,10 @@ package com.pet.tips.ai.service;
 
 import com.pet.tips.ai.entity.AiKnowledge;
 import com.pet.tips.ai.service.AiKnowledgeService;
-import com.pet.tips.ai.vectorstore.InMemoryVectorStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
@@ -19,8 +19,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TipsVectorStoreInitService implements ApplicationRunner {
 
-    private final InMemoryVectorStore inMemoryVectorStore;
+    private final VectorStore vectorStore;
     private final AiKnowledgeService aiKnowledgeService;
+    private static final int BATCH_SIZE = 10;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -47,7 +48,10 @@ public class TipsVectorStoreInitService implements ApplicationRunner {
                     })
                     .collect(Collectors.toList());
 
-            inMemoryVectorStore.add(documents);
+            for (int i = 0; i < documents.size(); i += BATCH_SIZE) {
+                List<Document> batch = documents.subList(i, Math.min(i + BATCH_SIZE, documents.size()));
+                vectorStore.add(batch);
+            }
             log.info("AI知识库向量库初始化完成，共加载 {} 条数据", documents.size());
         } catch (Exception e) {
             log.error("AI知识库向量库初始化失败（不影响服务启动，重启服务后重试）: {}", e.getMessage());

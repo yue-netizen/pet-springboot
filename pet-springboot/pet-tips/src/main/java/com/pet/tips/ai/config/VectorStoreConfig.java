@@ -1,6 +1,5 @@
 package com.pet.tips.ai.config;
 
-import com.pet.tips.ai.vectorstore.InMemoryVectorStore;
 import org.springframework.ai.document.MetadataMode;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
@@ -33,10 +32,5 @@ public class VectorStoreConfig {
                 OpenAiEmbeddingOptions.builder()
                         .model(embeddingModelName)
                         .build());
-    }
-
-    @Bean
-    public InMemoryVectorStore inMemoryVectorStore(EmbeddingModel embeddingModel) {
-        return new InMemoryVectorStore(embeddingModel);
     }
 }

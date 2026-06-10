@@ -8,11 +8,11 @@ import com.pet.common.result.Result;
 import com.pet.tips.ai.entity.AiKnowledge;
 import com.pet.tips.ai.mapper.AiKnowledgeMapper;
 import com.pet.tips.ai.service.AiKnowledgeService;
-import com.pet.tips.ai.vectorstore.InMemoryVectorStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AiKnowledgeServiceImpl extends ServiceImpl<AiKnowledgeMapper, AiKnowledge> implements AiKnowledgeService {
 
-    private final InMemoryVectorStore inMemoryVectorStore;
+    private final VectorStore vectorStore;
 
     @Override
     public Result<IPage<AiKnowledge>> getList(Integer page, Integer size, String category, String keyword) {
@@ -58,10 +58,10 @@ public class AiKnowledgeServiceImpl extends ServiceImpl<AiKnowledgeMapper, AiKno
 
         try {
             Document doc = toDocument(knowledge);
-            inMemoryVectorStore.add(doc);
-            log.info("新增知识[{}]已同步到向量库, 当前总量: {}", knowledge.getTitle(), inMemoryVectorStore.size());
+            vectorStore.add(List.of(doc));
+            log.info("新增知识[{}]已同步到向量库", knowledge.getTitle());
         } catch (Exception e) {
-            log.warn("新增知识[{}]向量同步失败，不影响数据保存，下次重启将自动修复: {}", knowledge.getTitle(), e.getMessage());
+            log.warn("新增知识[{}]向量同步失败，不影响数据保存: {}", knowledge.getTitle(), e.getMessage());
         }
 
         return Result.success();
@@ -101,16 +101,16 @@ public class AiKnowledgeServiceImpl extends ServiceImpl<AiKnowledgeMapper, AiKno
             var listResult = listEnabled();
             List<AiKnowledge> knowledgeList = listResult.getData();
             if (knowledgeList == null || knowledgeList.isEmpty()) {
-                inMemoryVectorStore.clear();
+                vectorStore.delete(List.of());
                 return;
             }
             List<Document> documents = knowledgeList.stream()
                     .map(this::toDocument)
                     .collect(Collectors.toList());
-            inMemoryVectorStore.rebuild(documents);
+            vectorStore.add(documents);
             log.info("向量库已重建，共 {} 条知识", documents.size());
         } catch (Exception e) {
-            log.warn("向量库重建失败，下次启动将自动恢复: {}", e.getMessage());
+            log.warn("向量库重建失败: {}", e.getMessage());
         }
     }
 

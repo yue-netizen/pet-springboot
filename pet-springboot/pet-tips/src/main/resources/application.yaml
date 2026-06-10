@@ -4,6 +4,22 @@ server:
 spring:
   application:
     name: pet-tips
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS}
+  ai:
+    vectorstore:
+      elasticsearch:
+        initialize-schema: true
+        index-name: pet-tips-knowledge
+        similarity: cosine
+        dimensions: 1024
+    openai:
+      api-key: ${DASHSCOPE_API_KEY}
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      chat:
+        options:
+          model: qwen-max-latest
+          temperature: 0.7
   servlet:
     multipart:
       max-file-size: 100MB

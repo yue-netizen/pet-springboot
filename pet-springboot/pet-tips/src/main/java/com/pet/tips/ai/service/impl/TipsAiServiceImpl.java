@@ -4,11 +4,11 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.pet.common.constant.RedisConstants;
 import com.pet.tips.ai.service.TipsAiService;
 import com.pet.tips.ai.tool.WebSearchTool;
-import com.pet.tips.ai.vectorstore.InMemoryVectorStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +25,7 @@ public class TipsAiServiceImpl implements TipsAiService {
     private final ChatClient tipsChatClient;
     private final WebSearchTool webSearchTool;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final InMemoryVectorStore inMemoryVectorStore;
+    private final VectorStore vectorStore;
 
     private static final int VECTOR_SEARCH_TOP_K = 3;
     private static final double VECTOR_SEARCH_MIN_SCORE = 0.3;
@@ -69,8 +69,12 @@ public class TipsAiServiceImpl implements TipsAiService {
     private String tryVectorStoreRAG(String query, String breed, String question, String cacheKey) {
         try {
             long startTime = System.currentTimeMillis();
-            List<Document> similarDocs = inMemoryVectorStore.similaritySearch(
-                    query, VECTOR_SEARCH_TOP_K, VECTOR_SEARCH_MIN_SCORE
+            List<Document> similarDocs = vectorStore.similaritySearch(
+                    org.springframework.ai.vectorstore.SearchRequest.builder()
+                            .query(query)
+                            .topK(VECTOR_SEARCH_TOP_K)
+                            .similarityThreshold(VECTOR_SEARCH_MIN_SCORE)
+                            .build()
             );
             long searchCost = System.currentTimeMillis() - startTime;
             log.info("向量库检索完成, 耗时{}ms, 命中{}条文档", searchCost, similarDocs.size());
