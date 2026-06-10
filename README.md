@@ -38,6 +38,7 @@
 </p>
 
 **首页特色：**
+
 - 🎨 清新简约的 UI 设计，温馨的视觉体验
 - 🐾 精选推荐宠物卡片展示
 - 🔍 快速搜索与筛选功能
@@ -53,6 +54,7 @@
 </p>
 
 **领养功能亮点：**
+
 - 🔍 多维度筛选（品种、年龄、性别等）
 - ❤️ 收藏功能，方便关注心仪宠物
 - 📋 详细的宠物信息展示
@@ -68,6 +70,7 @@
 </p>
 
 **社区功能特色：**
+
 - 📝 发布动态，分享养宠心得
 - 🏷️ 热门话题标签系统
 - 💬 评论互动，点赞收藏
@@ -83,6 +86,7 @@
 </p>
 
 **聊天功能特性：**
+
 - ⚡ WebSocket 实时通讯技术
 - 🤖 **AI 智能助手** - 基于阿里云通义千问大模型
 - 📱 支持文字、图片、表情消息
@@ -133,24 +137,26 @@
 
 ### 📦 微服务列表
 
-| 服务名称 | 端口 | 功能描述 | 技术栈 |
-|---------|------|---------|--------|
-| **pet-gateway** | 9000 | API网关、路由、认证 | Spring Cloud Gateway |
-| **pet-user** | 9001 | 用户注册登录、个人信息 | Spring Boot + MyBatis-Plus |
-| **pet-admin** | 9002 | 后台管理系统 | Spring Boot + MyBatis-Plus |
-| **pet-social** | 9003 | 社交帖子、评论、话题 | Spring Boot + OSS |
-| **pet-chat** | 9004 | 实时聊天、AI问答 | WebSocket + Spring AI |
-| **pet-donation** | 9005 | 爱心捐赠 | Spring Boot |
-| **pet-recruitment** | 9006 | 招聘求职 | Spring Boot |
-| **pet-story** | 9007 | 宠物故事 | Spring Boot |
-| **pet-pet** | 9008 | 宠物信息管理 | Spring Boot |
-| **pet-tips** | 9009 | 养宠知识、AI智能问答 | Spring AI + 向量数据库 |
+
+| 服务名称            | 端口 | 功能描述               | 技术栈                     |
+| ------------------- | ---- | ---------------------- | -------------------------- |
+| **pet-gateway**     | 9000 | API网关、路由、认证    | Spring Cloud Gateway       |
+| **pet-user**        | 9001 | 用户注册登录、个人信息 | Spring Boot + MyBatis-Plus |
+| **pet-admin**       | 9002 | 后台管理系统           | Spring Boot + MyBatis-Plus |
+| **pet-social**      | 9003 | 社交帖子、评论、话题   | Spring Boot + OSS          |
+| **pet-chat**        | 9004 | 实时聊天、AI问答       | WebSocket + Spring AI      |
+| **pet-donation**    | 9005 | 爱心捐赠               | Spring Boot                |
+| **pet-recruitment** | 9006 | 招聘求职               | Spring Boot                |
+| **pet-story**       | 9007 | 宠物故事               | Spring Boot                |
+| **pet-pet**         | 9008 | 宠物信息管理           | Spring Boot                |
+| **pet-tips**        | 9009 | 养宠知识、AI智能问答   | Spring AI + 向量数据库     |
 
 ---
 
 ## 🛠️ 技术栈
 
 ### 后端技术
+
 - **框架**: Spring Boot 3.x, Spring Cloud 2023.x
 - **注册中心**: Nacos (服务发现 & 配置管理)
 - **API网关**: Spring Cloud Gateway
@@ -159,12 +165,13 @@
 - **缓存**: Redis
 - **消息队列**: RabbitMQ
 - **文件存储**: 阿里云 OSS
-- **AI能力**: 
+- **AI能力**:
   - 阿里云 DashScope (通义千问大模型)
   - 向量数据库 (文本嵌入 & 相似度检索)
 - **API文档**: Knife4j (Swagger增强版)
 
 ### 开发工具
+
 - **构建工具**: Maven
 - **IDE**: IntelliJ IDEA (推荐)
 - **JDK版本**: Java 17+
@@ -177,6 +184,7 @@
 在开始之前，请确保你的开发环境已安装以下软件：
 
 ### 必需组件
+
 - [JDK 17+](https://adoptium.net/) (推荐 JDK 21)
 - [Maven 3.8+](https://maven.apache.org/)
 - [MySQL 8.0+](https://dev.mysql.com/downloads/)
@@ -185,6 +193,7 @@
 - [Nacos 2.3+](https://nacos.io/zh-cn/docs/v2/quickstart/quick-start.html) (单机模式即可)
 
 ### 可选组件（用于AI功能）
+
 - 阿里云 DashScope API Key ([获取地址](https://dashscope.console.aliyun.com/))
 - 阿里云 OSS AccessKey ([获取地址](https://ram.console.aliyun.com/manage/ak))
 
@@ -266,39 +275,41 @@ source sql/init.sql
 **启动顺序很重要！请按以下顺序启动：**
 
 1. **启动 Nacos**
+
    ```bash
    # 进入 Nacos 目录
    cd nacos/bin
-   
+
    # 单机模式启动
    # Linux/Mac
    sh startup.sh -m standalone
-   
+
    # Windows
    startup.cmd -m standalone
    ```
-   
-   访问 http://localhost:8848/nacos （默认账号密码：nacos/nacos）
 
+   访问 http://localhost:8848/nacos （默认账号密码：nacos/nacos）
 2. **启动 Redis**
+
    ```bash
    redis-server
    ```
-
 3. **启动 RabbitMQ**
+
    ```bash
    # Windows: 直接运行 RabbitMQ 服务
    # Linux/Mac:
    sudo systemctl start rabbitmq-server
    ```
-   
-   访问 http://localhost:15672 （默认账号密码：guest/guest）
+
+   访问 http://localhost:15672
 
 ### 第五步：启动微服务
 
 **方式一：使用 IDE 启动（推荐用于开发）**
 
 在 IntelliJ IDEA 中依次启动：
+
 1. `GatewayApplication` (网关服务)
 2. `UserApplication` (用户服务)
 3. `AdminApplication` (管理员服务)
@@ -339,6 +350,7 @@ java -jar pet-admin/target/admin.jar
 ### 主要接口示例
 
 #### 用户认证
+
 ```bash
 # 用户注册
 POST http://localhost:9000/api/auth/register
@@ -361,11 +373,13 @@ Content-Type: application/json
 ```
 
 #### 获取宠物列表
+
 ```bash
 GET http://localhost:9000/api/pet/list?pageNum=1&pageSize=10
 ```
 
 #### 发布帖子（需要Token）
+
 ```bash
 POST http://localhost:9000/api/social/post
 Authorization: Bearer {your_token}
@@ -394,21 +408,23 @@ Content-Type: application/json
 
 #### 必须配置的安全相关参数
 
-| 参数名 | 环境变量 | 说明 | 默认值 |
-|--------|---------|------|--------|
-| 数据库密码 | DB_PASSWORD | MySQL密码 | 123456 ⚠️ |
-| Redis密码 | REDIS_PASSWORD | Redis密码 | 123321 ⚠️ |
-| RabbitMQ密码 | RABBITMQ_PASSWORD | MQ密码 | guest ⚠️ |
-| JWT密钥 | JWT_SECRET_KEY | Token签名密钥 | ⚠️ 必须修改 |
+
+| 参数名       | 环境变量          | 说明          |  |
+| ------------ | ----------------- | ------------- | - |
+| 数据库密码   | DB_PASSWORD       | MySQL密码     |  |
+| Redis密码    | REDIS_PASSWORD    | Redis密码     |  |
+| RabbitMQ密码 | RABBITMQ_PASSWORD | MQ密码        |  |
+| JWT密钥      | JWT_SECRET_KEY    | Token签名密钥 |  |
 
 #### 可选的功能性参数
 
-| 参数名 | 环境变量 | 说明 | 默认值 |
-|--------|---------|------|--------|
-| Nacos地址 | NACOS_SERVER_ADDR | 注册中心地址 | localhost:8848 |
-| OSS AccessKey | OSS_ACCESS_KEY_ID | 阿里云密钥ID | 空（需配置）|
-| OSS Secret | OSS_ACCESS_KEY_SECRET | 阿里云密钥Secret | 空（需配置）|
-| DashScope Key | DASHSCOPE_API_KEY | AI服务API Key | 空（需配置）|
+
+| 参数名        | 环境变量              | 说明             |  |
+| ------------- | --------------------- | ---------------- | - |
+| Nacos地址     | NACOS_SERVER_ADDR     | 注册中心地址     |  |
+| OSS AccessKey | OSS_ACCESS_KEY_ID     | 阿里云密钥ID     |  |
+| OSS Secret    | OSS_ACCESS_KEY_SECRET | 阿里云密钥Secret |  |
+| DashScope Key | DASHSCOPE_API_KEY     | AI服务API Key    |  |
 
 ### 自定义端口
 
@@ -459,29 +475,33 @@ pet-github/
 #### ⚡ 响应速度问题
 
 **问题描述：**
+
 - AI 助手在回答问题时，响应时间较长（通常需要 5-15 秒）
 - 用户提问后可能需要等待较长时间才能收到回复
 
 **原因分析：**
+
 1. **RAG 向量检索流程复杂**
+
    - 用户问题 → 文本向量化 → 向量数据库相似度检索 → 获取相关文档片段 → 组装 Prompt → 调用大模型 API → 生成回复
-   
 2. **向量切片粒度问题**
+
    - 当前文档切片策略可能不够优化，导致检索到过多或过少的相关内容
    - 切片过大：包含冗余信息，增加 Token 消耗和处理时间
    - 切片过小：丢失上下文信息，影响回答质量
-
 3. **外部 API 调用延迟**
+
    - 阿里云 DashScope API 的网络延迟
    - 通义千问大模型的推理时间
 
 **优化方向（TODO）：**
-- [ ] 优化文档切片策略（如：按语义段落切片、动态调整切片大小）
-- [ ] 引入缓存机制（相似问题的缓存复用）
-- [ ] 优化 Prompt 模板，减少 Token 数量
-- [ ] 考虑使用流式输出（Streaming）提升用户体验
-- [ ] 添加请求队列和并发控制
-- [ ] 引入本地向量数据库（如 Milvus）替代远程服务
+
+- [ ]  优化文档切片策略（如：按语义段落切片、动态调整切片大小）
+- [ ]  引入缓存机制（相似问题的缓存复用）
+- [ ]  优化 Prompt 模板，减少 Token 数量
+- [ ]  考虑使用流式输出（Streaming）提升用户体验
+- [ ]  添加请求队列和并发控制
+- [ ]  引入本地向量数据库（如 Milvus）替代远程服务
 
 ---
 
@@ -491,45 +511,49 @@ pet-github/
 
 #### 🔧 需要改进的功能
 
-| 功能模块 | 当前状态 | 优先级 | 计划完成时间 |
-|---------|---------|--------|-------------|
-| **消息历史记录持久化** | 仅内存存储 | 🔴 高 | 待开发 |
-| **离线消息推送** | 未实现 | 🔴 高 | 待开发 |
-| **文件/图片发送** | 基础支持 | 🟡 中 | 优化中 |
-| **消息已读回执** | 未实现 | 🟡 中 | 待开发 |
-| **输入状态提示（正在输入...）** | 未实现 | 🟢 低 | 待开发 |
-| **消息撤回功能** | 未实现 | 🟢 低 | 待开发 |
-| **群聊管理功能** | 基础实现 | 🟡 中 | 完善中 |
-| **聊天记录搜索** | 未实现 | 🟢 低 | 待开发 |
+
+| 功能模块                        | 当前状态   | 优先级 | 计划完成时间 |
+| ------------------------------- | ---------- | ------ | ------------ |
+| **消息历史记录持久化**          | 仅内存存储 | 🔴 高  | 待开发       |
+| **离线消息推送**                | 未实现     | 🔴 高  | 待开发       |
+| **文件/图片发送**               | 基础支持   | 🟡 中  | 优化中       |
+| **消息已读回执**                | 未实现     | 🟡 中  | 待开发       |
+| **输入状态提示（正在输入...）** | 未实现     | 🟢 低  | 待开发       |
+| **消息撤回功能**                | 未实现     | 🟢 低  | 待开发       |
+| **群聊管理功能**                | 基础实现   | 🟡 中  | 完善中       |
+| **聊天记录搜索**                | 未实现     | 🟢 低  | 待开发       |
 
 #### 📋 技术细节说明
 
 **WebSocket 连接管理：**
+
 ```java
 // 当前实现基于 Spring WebSocket
 // 支持单机部署，集群场景需引入 Redis Pub/Sub 或 RabbitMQ
 ```
 
 **AI 对话上下文限制：**
+
 - 当前每次对话独立，未维护长期会话上下文
 - 建议：引入 Redis 存储对话历史，支持多轮对话记忆
 
 **性能优化建议：**
-- [ ] 使用 Netty 替代 Tomcat WebSocket（更高并发）
-- [ ] 消息压缩传输（减少带宽占用）
-- [ ] 心跳检测机制优化（更准确的在线状态）
-- [ ] 消息队列削峰填谷（高并发场景）
+
+- [ ]  使用 Netty 替代 Tomcat WebSocket（更高并发）
+- [ ]  消息压缩传输（减少带宽占用）
+- [ ]  心跳检测机制优化（更准确的在线状态）
+- [ ]  消息队列削峰填谷（高并发场景）
 
 ---
 
 ### 📌 其他待优化项
 
-- [ ] **前端性能优化**：图片懒加载、路由懒加载、组件按需加载
-- [ ] **移动端适配**：部分页面在移动设备上显示效果需优化
-- [ ] **国际化支持**：目前仅支持中文界面
-- [ ] **单元测试覆盖率**：核心业务逻辑测试覆盖待提升
-- [ ] **API 接口限流**：网关层需添加更细粒度的限流策略
-- [ ] **日志系统完善**：结构化日志、链路追踪（ELK/SkyWalking）
+- [ ]  **前端性能优化**：图片懒加载、路由懒加载、组件按需加载
+- [ ]  **移动端适配**：部分页面在移动设备上显示效果需优化
+- [ ]  **国际化支持**：目前仅支持中文界面
+- [ ]  **单元测试覆盖率**：核心业务逻辑测试覆盖待提升
+- [ ]  **API 接口限流**：网关层需添加更细粒度的限流策略
+- [ ]  **日志系统完善**：结构化日志、链路追踪（ELK/SkyWalking）
 
 ---
 
@@ -554,26 +578,26 @@ pet-github/
 🔧 **你需要做的：**
 
 1. **复制并配置 .env 文件**
+
    ```bash
    cp .env.example .env
    # 编辑 .env，填入真实配置
    ```
-
 2. **修改默认密码** - 特别是：
+
    - `DB_PASSWORD` - 数据库密码
    - `JWT_SECRET_KEY` - JWT密钥（最重要！）
-
 3. **不要提交 .env 文件** - 已在 .gitignore 中排除
 
 ### 生产环境部署建议
 
-- [ ] 使用强密码（至少32位随机字符串）
-- [ ] 启用 HTTPS
-- [ ] 配置防火墙规则
-- [ ] 定期备份数据库
-- [ ] 监控日志异常
-- [ ] 使用配置中心（如Nacos Config）管理生产配置
-- [ ] 考虑使用 Kubernetes 或 Docker Compose 进行容器化部署
+- [ ]  使用强密码（至少32位随机字符串）
+- [ ]  启用 HTTPS
+- [ ]  配置防火墙规则
+- [ ]  定期备份数据库
+- [ ]  监控日志异常
+- [ ]  使用配置中心（如Nacos Config）管理生产配置
+- [ ]  考虑使用 Kubernetes 或 Docker Compose 进行容器化部署
 
 ---
 
