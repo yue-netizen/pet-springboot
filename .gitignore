@@ -1,0 +1,42 @@
+# 编译输出
+target/
+*.class
+*.jar
+*.war
+*.log
+
+# 环境变量和敏感配置
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# 压缩包（除了项目源码）
+*.tar.gz
+*.zip
+
+# 日志文件
+*.log
+logs/
+
+# bin 目录
+**/bin/

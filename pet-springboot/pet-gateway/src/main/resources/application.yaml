@@ -1,0 +1,95 @@
+server:
+  port: ${GATEWAY_PORT}
+
+spring:
+  application:
+    name: pet-gateway
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+      enabled: true
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR}
+        enabled: true
+      config:
+        server-addr: ${NACOS_SERVER_ADDR}
+        file-extension: yaml
+        enabled: false
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: pet-user
+          uri: lb://pet-user
+          predicates:
+            - Path=/api/user/**,/api/auth/**,/api/follow/**
+          filters:
+            - StripPrefix=1
+        - id: pet-admin
+          uri: lb://pet-admin
+          predicates:
+            - Path=/api/admin/**,/api/config/**
+          filters:
+            - StripPrefix=1
+        - id: pet-pet
+          uri: lb://pet-pet
+          predicates:
+            - Path=/api/pet/**,/api/adoption/**,/api/favorite/**
+          filters:
+            - StripPrefix=1
+        - id: pet-social
+          uri: lb://pet-social
+          predicates:
+            - Path=/api/social/**,/api/post/**,/api/comment/**,/api/upload/**,/api/topic/**
+          filters:
+            - StripPrefix=1
+        - id: pet-chat
+          uri: lb://pet-chat
+          predicates:
+            - Path=/api/chat/**,/api/message/**,/api/ai/**
+          filters:
+            - StripPrefix=1
+        - id: pet-donation
+          uri: lb://pet-donation
+          predicates:
+            - Path=/api/donation/**
+          filters:
+            - StripPrefix=1
+        - id: pet-recruitment
+          uri: lb://pet-recruitment
+          predicates:
+            - Path=/api/recruitment/**,/api/job/**
+          filters:
+            - StripPrefix=1
+        - id: pet-story
+          uri: lb://pet-story
+          predicates:
+            - Path=/api/story/**,/api/story-comment/**
+          filters:
+            - StripPrefix=1
+        - id: pet-tips
+          uri: lb://pet-tips
+          predicates:
+            - Path=/api/tips/**,/api/tips-ai/**
+          filters:
+            - StripPrefix=1
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+
+logging:
+  level:
+    com.pet.gateway: debug
+    org.springframework.cloud.gateway: debug

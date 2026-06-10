@@ -1,0 +1,117 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--fontSans);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --shadow-x: var(--shadow-x);
+  --shadow-y: var(--shadow-y);
+  --shadow-blur: var(--shadow-blur);
+  --shadow-spread: var(--shadow-spread);
+  --shadow-color: var(--shadow-color);
+}
+:root {
+  --fontSans: "Inter", sans-serif;
+  
+  /* Background: Warm Beige */
+  --background: rgba(253, 248, 243, 1);
+  --foreground: rgba(87, 74, 62, 1);
+  
+  /* Cards: Pure White */
+  --card: rgba(255, 255, 255, 1);
+  --card-foreground: rgba(87, 74, 62, 1);
+  --popover: rgba(255, 255, 255, 1);
+  --popover-foreground: rgba(87, 74, 62, 1);
+  
+  /* Primary: Light Fresh Green */
+  --primary: rgba(167, 201, 87, 1);
+  --primary-foreground: rgba(255, 255, 255, 1);
+  
+  /* Secondary: Soft Orange */
+  --secondary: rgba(242, 166, 90, 1);
+  --secondary-foreground: rgba(255, 255, 255, 1);
+  
+  /* Muted: Soft Beige Overlay */
+  --muted: rgba(242, 235, 226, 1);
+  --muted-foreground: rgba(140, 125, 112, 1);
+  
+  /* Accent */
+  --accent: rgba(242, 166, 90, 0.1);
+  --accent-foreground: rgba(242, 166, 90, 1);
+  
+  /* Destructive/Alert */
+  --destructive: rgba(239, 83, 80, 1);
+  --destructive-foreground: rgba(255, 255, 255, 1);
+  
+  /* Borders and Rings */
+  --border: rgba(235, 225, 215, 1);
+  --input: rgba(235, 225, 215, 1);
+  --ring: rgba(167, 201, 87, 0.5);
+  
+  /* Rounded Corners for Flat/Soft Design */
+  --radius: 1rem;
+  
+  /* Custom Shadows */
+  --shadow-x: 0px;
+  --shadow-y: 8px;
+  --shadow-blur: 24px;
+  --shadow-spread: 0px;
+  --shadow-color: rgba(87, 74, 62, 0.08);
+}
+
+.dark {
+  /* Using same RGB formats to fulfill requirements, mapping to softer dark shades */
+  --background: rgba(30, 26, 24, 1);
+  --foreground: rgba(245, 238, 230, 1);
+  --card: rgba(45, 38, 35, 1);
+  --card-foreground: rgba(245, 238, 230, 1);
+  --primary: rgba(144, 175, 75, 1);
+  --primary-foreground: rgba(255, 255, 255, 1);
+  --secondary: rgba(214, 145, 75, 1);
+  --secondary-foreground: rgba(255, 255, 255, 1);
+  --muted: rgba(60, 50, 45, 1);
+  --muted-foreground: rgba(180, 165, 150, 1);
+  --border: rgba(80, 70, 65, 1);
+  --input: rgba(80, 70, 65, 1);
+  --ring: rgba(144, 175, 75, 0.5);
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans tracking-wide;
+  }
+}
+
+@layer utilities {
+  .shadow-custom {
+    box-shadow: var(--shadow-x) var(--shadow-y) var(--shadow-blur) var(--shadow-spread) var(--shadow-color);
+  }
+}
